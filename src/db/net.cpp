@@ -59,6 +59,7 @@ netDB_ptr create_netDB(int numNet)
 {
     netDB_ptr data = (netDB_ptr)malloc(sizeof(struct NETDB));
     data->numNet = numNet;
+    data->curNumNet = 0;
     data->netArray = (net_ptr*)calloc(sizeof(net_ptr), numNet);
     return data;
 }

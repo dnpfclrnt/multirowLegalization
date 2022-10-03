@@ -33,6 +33,7 @@ struct INSTANCE{
 
 struct INSTDB{
     int numInst;
+    int curNumInst;
     instance_ptr* instArray;
 }; typedef struct INSTDB* instDB_ptr;
 
@@ -44,5 +45,8 @@ instDB_ptr create_instDB(int numInst);
 void destroy_instDB(instDB_ptr rmdb);
 
 void place_instance(instance_ptr inst, struct POS lowerLeft);
+void flip_instance_horizontal(instance_ptr inst);
+void flip_instance_vertical(instance_ptr inst);
+void rotate_instance(instance_ptr inst);
 
 #endif

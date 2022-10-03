@@ -48,6 +48,7 @@ instDB_ptr create_instDB(int numInst)
 {
     instDB_ptr data = (instDB_ptr)malloc(sizeof(struct INSTDB));
     data->numInst = numInst;
+    data->curNumInst = 0;
     data->instArray = (instance_ptr*)calloc(sizeof(instance_ptr), numInst);
     return data;
 }
@@ -89,5 +90,39 @@ void place_instance(instance_ptr inst, struct POS lowerLeft)
     for (int i = 0; i < inst->numRows; i++)
     {
         inst->rowIdxArray[i] = rowIdx + i * inst->rowHeight;
+    }
+}
+
+
+void flip_instance_horizontal(instance_ptr inst)
+{
+    for (int i = 0; i < inst->numPins; i++)
+    {
+        pin_ptr pin = inst->instPinArray[i];
+        pin->absPos.x = inst->fpmax.x - pin->absPos.x;
+        setFPOS(pin->pinPos, inst->fpmin, pin->absPos);
+    }
+}
+
+
+void flip_instance_vertical(instance_ptr inst)
+{
+    for (int i = 0; i < inst->numPins; i++)
+    {
+        pin_ptr pin = inst->instPinArray[i];
+        pin->absPos.y = inst->fpmax.y - pin->absPos.y;
+        setFPOS(pin->pinPos, inst->fpmin, pin->absPos);
+    }
+}
+
+
+void rotate_instance(instance_ptr inst)
+{
+    for (int i = 0; i < inst->numPins; i++)
+    {
+        pin_ptr pin = inst->instPinArray[i];
+        pin->absPos.x = inst->fpmax.x - pin->absPos.x;
+        pin->absPos.y = inst->fpmax.y - pin->absPos.y;
+        setFPOS(pin->pinPos, inst->fpmin, pin->absPos);
     }
 }

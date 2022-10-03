@@ -79,3 +79,82 @@ struct FPOS fpdiv(struct FPOS target, prec multiply)
     ret.y = target.y / multiply;
     return ret;
 }
+
+
+unsigned int hash_function(char* name)
+{
+    unsigned int hash_index = 0;
+    for (int i = 0; i < strlen(name); i++)
+    {
+        int cur_char = (int)(*(name + i));
+        hash_index = hash_index * hash_key + cur_char;
+    }
+    return hash_index % cur_hash_table_len;
+}
+
+
+charToken_ptr create_charToken(char* stream)
+{
+    charToken_ptr new_token = (charToken_ptr)malloc(sizeof(struct CharToken));
+    new_token->stream = strdup(stream);
+    new_token->next = NULL;
+    return new_token;
+}
+
+
+void destroy_token_chain(charToken_ptr rm_token)
+{
+    while(rm_token)
+    {
+        charToken_ptr token_next = rm_token->next;
+        free(rm_token);
+        rm_token = token_next;
+    }
+}
+
+
+splitToken_ptr split_line(char* line)
+{
+    char *temp_line = strdup(line);
+    int cnt = 1;
+    char *token = strtok(temp_line, " ");
+    charToken_ptr head = create_charToken(token);
+    while (token)
+    {
+        token = strtok(NULL, " ");
+        if (!token) break;
+        charToken_ptr node = create_charToken(token);
+        charToken_ptr sweep = head;
+        while (sweep->next){
+            sweep = sweep->next;
+        }
+        cnt++;
+        sweep->next = node;
+    }
+    char** split_array = (char**)malloc(sizeof(char*) * cnt);
+    charToken_ptr sweep = head;
+    for (int i = 0; i < cnt; i++)
+    {
+        split_array[i] = sweep->stream;
+        sweep = sweep->next;
+    }
+
+    *(split_array[cnt-1]+(strlen(split_array[cnt - 1]) - 1)) = '\0';
+    free(temp_line);
+    destroy_token_chain(head);
+    splitToken_ptr splitToken = (splitToken_ptr)malloc(sizeof(struct splitToken));
+    splitToken->arrayLen = cnt;
+    splitToken->split = split_array;
+    return splitToken;
+}
+
+
+void destroy_splitToken(splitToken_ptr rm_token)
+{
+    for (int i = 0; i < rm_token->arrayLen; i++)
+    {
+        free(rm_token->split[i]);
+    }
+    free(rm_token->split);
+    free(rm_token);
+}

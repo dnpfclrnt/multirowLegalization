@@ -32,6 +32,7 @@ struct NET{
 
 struct NETDB{
     int numNet;
+    int curNumNet;
     net_ptr* netArray;
 }; typedef struct NETDB* netDB_ptr;
 
