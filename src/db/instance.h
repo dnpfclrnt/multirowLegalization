@@ -10,7 +10,7 @@
 // Instance structure
 struct INSTANCE{
     char* instName;
-
+    void* techInst;
     struct FPOS fpmin;
     struct FPOS fcent;
     struct FPOS fpmax;

@@ -9,6 +9,7 @@ instance_ptr create_instance(char* instName, int sizeX, int sizeY, int numPins, 
     inst->instName = strdup(instName);
 
     // Reset positions (defined in utils.h)
+    inst->techInst = NULL;
     resetFPOS(inst->fpmin);
     resetFPOS(inst->fcent);
     resetFPOS(inst->fpmax);
