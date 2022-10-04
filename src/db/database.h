@@ -7,6 +7,7 @@
 #include "instance.h"
 #include "net.h"
 #include "tech.h"
+#include "port.h"
 
 
 enum state{
@@ -18,7 +19,9 @@ enum state{
     state_inst,       // 5
     state_netDB,      // 6
     state_net,        // 7
-    state_netPin      // 8
+    state_netPin,     // 8
+    state_portDB,     // 9
+    state_port,       // 10
 };
 
 
@@ -27,6 +30,7 @@ struct DATABASE{
     instDB_ptr inst_data;
     netDB_ptr net_data;
     techDB_ptr tech_data;
+    portDB_ptr port_data;
 }; typedef struct DATABASE* database_ptr;
 
 

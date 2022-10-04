@@ -58,6 +58,7 @@ database_ptr create_database(void)
     data->inst_data = create_instDB();
     data->net_data = create_netDB();
     data->tech_data = create_techDB();
+    data->port_data = create_portDB();
     return data;
 }
 
@@ -120,12 +121,12 @@ database_ptr database_init(char* filedir)
                 cur_state = state_instDB;
                 break;
             }
+
             case state_instDB:
                 printf("State instDB\n");
                 data->inst_data->numInst = atoi(splitted[1]);
                 cur_state = state_inst;
                 break;
-
             case state_inst: {
                 char* name = splitted[1];
                 char* libcellName = splitted[2];
@@ -143,6 +144,21 @@ database_ptr database_init(char* filedir)
                 inst_init(curInst);
                 break;
             }
+
+            case state_portDB:
+                printf("State portDB\n");
+                data->port_data->numPorts = atoi(splitted[1]);
+                cur_state = state_port;
+                break;
+            case state_port: {
+                printf("State port\n");
+                char* portName = splitted[1];
+                int cent_x = atoi(splitted[2]);
+                int cent_y = atoi(splitted[3]);
+                char* rotateflag = splitted[4];
+                port_ptr port = create_port(data->port_data, portName, cent_x, cent_y, rotateflag);
+            }
+
             case state_netDB:
                 printf("State netdb\n");
                 data->net_data->numNet = atoi(splitted[1]);
@@ -155,18 +171,25 @@ database_ptr database_init(char* filedir)
                 break;
             case state_netPin: {
                 printf("State netpin\n");
-                printf("%s\n", line);
+                printf("%s", line);
                 splitToken_ptr cell_pin = split_dash(splitted[1]);
-                printf("Splitted\n");
                 printf("Inst = %s, Pin = %s\n", cell_pin->split[0], cell_pin->split[1]);
-                pin_ptr curPin = get_instPin(data, cell_pin->split[0], cell_pin->split[1]);
-                if (curPin == NULL)
+                if (!strcmp(cell_pin->split[0], "PIN"))
                 {
-                    fprintf(stderr, "Failed to find pin\n");
-                    exit(EXIT_FAILURE);
+                    // Further develop
+                    continue;
                 }
-                printf("update curnet");
-                curPin->net = curNet;
+                else
+                {
+                    pin_ptr curPin = get_instPin(data, cell_pin->split[0], cell_pin->split[1]);
+                    if (curPin == NULL)
+                    {
+                        fprintf(stderr, "Failed to find pin\n");
+                        exit(EXIT_FAILURE);
+                    }
+                    printf("update curnet");
+                    curPin->net = curNet;
+                }
                 break;
             }
         }
@@ -185,6 +208,11 @@ database_ptr database_init(char* filedir)
         if (cur_state == state_inst)
         {
             if (!strcmp(splitted[0], "Inst")) cur_state = state_inst;
+            else cur_state = state_portDB;
+        }
+        if (cur_state == state_port)
+        {
+            if (!strcmp(splitted[0], "Port")) cur_state = state_port;
             else cur_state = state_netDB;
         }
         if (cur_state == state_netPin)

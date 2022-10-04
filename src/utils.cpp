@@ -164,7 +164,6 @@ splitToken_ptr split_dash(char* word)
         }
     }
     checkpoint++;
-    printf("checkpoint = %c\n", *checkpoint);
     split->split = (char**)malloc(sizeof(char)*2);
     split->split[0] = strdup(word);
     split->split[1] = strdup(checkpoint);
