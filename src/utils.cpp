@@ -89,7 +89,7 @@ unsigned int hash_function(char* name)
         int cur_char = (int)(*(name + i));
         hash_index = hash_index * hash_key + cur_char;
     }
-    return hash_index % cur_hash_table_len;
+    return hash_index % default_hash_size;
 }
 
 
@@ -146,6 +146,25 @@ splitToken_ptr split_line(char* line)
     splitToken->arrayLen = cnt;
     splitToken->split = split_array;
     return splitToken;
+}
+
+
+splitToken_ptr split_dash(char* word)
+{
+    splitToken_ptr split = (splitToken_ptr)malloc(sizeof(struct splitToken));
+    split->arrayLen = 2;
+    int wordLen = strlen(word);
+    char* checkpoint = word + wordLen;
+    for (int i = wordLen; i > 0; i--)
+    {
+        checkpoint--;
+        if (*checkpoint == '/') *checkpoint = '\0';
+    }
+    checkpoint++;
+    split->split = (char**)malloc(sizeof(char)*2);
+    split->split[0] = strdup(word);
+    split->split[1] = strdup(checkpoint);
+    return split;
 }
 
 

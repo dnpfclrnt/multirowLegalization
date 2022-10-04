@@ -7,6 +7,7 @@
 
 
 struct TECHPIN{
+    char* pinName;
     struct FPOS pinPos;
 }; typedef struct TECHPIN* techPin_ptr;
 

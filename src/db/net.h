@@ -6,10 +6,15 @@
 
 
 struct PIN{
+    char* pinName;
     int netIdx;
     int netPinIdx;
     int instIdx;
     int instPinIdx;
+
+    void* inst;
+    void* net;
+    
     struct FPOS pinPos;
     struct FPOS absPos;
 }; typedef struct PIN* pin_ptr;
@@ -46,7 +51,7 @@ struct NETDB{
 
 // List of functions
 // Const/Dist functions
-pin_ptr create_pin(struct POS pinPos);
+pin_ptr create_pin(struct FPOS pinPos);
 net_ptr create_net(netDB_ptr data, char* netName, int numPins);
 void destroy_net(net_ptr net);
 netDB_ptr create_netDB(void);

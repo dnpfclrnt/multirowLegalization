@@ -48,6 +48,10 @@ techInst_ptr get_techInst(techDB_ptr tech_data, char* techName)
 void destroy_techInst(techInst_ptr techInst)
 {
     free(techInst->techName);
+    for (int i = 0; i < techInst->numPins; i++)
+    {
+        free(techInst->techPinArray[i].pinName);
+    }
     free(techInst->techPinArray);
     free(techInst);
 }

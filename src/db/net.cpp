@@ -2,12 +2,13 @@
 
 
 // Construction/Destruction function
-pin_ptr create_pin(struct POS pinPos)
+pin_ptr create_pin(struct FPOS pinPos)
 {
     pin_ptr pin = (pin_ptr)malloc(sizeof(struct PIN));
     pin->netIdx = pin->netPinIdx = -1;
     pin->instIdx = pin->instPinIdx = -1;
-    pin->pinPos = posToFPOS(pinPos);
+    pin->inst = pin->net = NULL;
+    pin->pinPos = pinPos;
     return pin;
 }
 
@@ -22,7 +23,7 @@ net_ptr create_net(netDB_ptr data, char* netName, int numPins)
 
     net->numPins = numPins;
     net->curNumPins = 0;
-    net->netPinArray = (pin_ptr)calloc(sizeof(struct PIN), numPins);
+    net->netPinArray = (pin_ptr*)calloc(sizeof(pin_ptr), numPins);
 
     resetFPOS(net->pmax);
     resetFPOS(net->pmin);

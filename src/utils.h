@@ -26,6 +26,7 @@ struct POS pdiv(struct POS target, int multiply);
 struct FPOS fpdiv(struct FPOS target, prec multiply);
 unsigned int hash_function(char* name);
 charToken_ptr create_charToken(char* stream);
+splitToken_ptr split_dash(char* word);
 void destroy_token_chain(charToken_ptr rm_token);
 splitToken_ptr split_line(char* line);
 void destroy_splitToken(splitToken_ptr rm_token);
