@@ -1,3 +1,7 @@
+#ifndef _UTILS_H
+#define _UTILS_H
+
+
 #include "global.h"
 
 
@@ -30,3 +34,6 @@ splitToken_ptr split_dash(char* word);
 void destroy_token_chain(charToken_ptr rm_token);
 splitToken_ptr split_line(char* line);
 void destroy_splitToken(splitToken_ptr rm_token);
+
+
+#endif

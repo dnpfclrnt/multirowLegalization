@@ -1,7 +1,7 @@
 #ifndef _NET_H
 #define _NET_H
 
-#include "../global.h"
+// #include "../global.h"
 #include "../utils.h"
 
 

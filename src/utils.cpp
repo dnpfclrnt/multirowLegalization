@@ -158,9 +158,13 @@ splitToken_ptr split_dash(char* word)
     for (int i = wordLen; i > 0; i--)
     {
         checkpoint--;
-        if (*checkpoint == '/') *checkpoint = '\0';
+        if (*checkpoint == '/') {
+            *checkpoint = '\0';
+            break;
+        }
     }
     checkpoint++;
+    printf("checkpoint = %c\n", *checkpoint);
     split->split = (char**)malloc(sizeof(char)*2);
     split->split[0] = strdup(word);
     split->split[1] = strdup(checkpoint);

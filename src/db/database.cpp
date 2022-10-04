@@ -13,7 +13,7 @@ pin_ptr get_instPin(database_ptr data, char* instname, char* pinName)
     for (int i = 0; i < inst->numPins; i++)
     {
         pin_ptr sweep = inst->instPinArray[i];
-        if (!strcmp(sweep->pinName), pinName) return sweep;
+        if (!strcmp(sweep->pinName, pinName)) return sweep;
     }
     return NULL;
 }
@@ -31,10 +31,11 @@ void inst_init(instance_ptr inst)
     setPOS(inst->cent, inst->pmin, pdiv(curTech->size, 2));
     setPOS(inst->pmax, inst->pmin, curTech->size);
 
-    inst->size = curTech->szie;
+    inst->size = curTech->size;
     inst->fsize = fsize;
 
     inst->numPins = curTech->numPins;
+    inst->instPinArray = (pin_ptr*)calloc(sizeof(pin_ptr), inst->numPins);
     for (int i = 0; i < curTech->numPins; i++)
     {
         pin_ptr pin = create_pin(curTech->techPinArray[i].pinPos);
@@ -63,7 +64,7 @@ database_ptr create_database(void)
 
 database_ptr database_init(char* filedir)
 {
-    FILE* target_file = fopen(filename, "r");
+    FILE* target_file = fopen(filedir, "r");
     if (target_file == NULL) return NULL;
     char line_array[max_line_length];
     char* line = &line_array[0];
@@ -71,6 +72,7 @@ database_ptr database_init(char* filedir)
     //Get first line
     line = fgets(line, max_line_length, target_file);
     while (line && line[0] < 32) line = fgets(line, max_line_length, target_file); // Skip Enters. 
+    printf("%s\n", line);
     splitToken_ptr Token = split_line(line);
     char** splitted = Token->split;
 
@@ -78,77 +80,95 @@ database_ptr database_init(char* filedir)
     net_ptr curNet = NULL;
 
     database_ptr data = create_database();
+    char* masterCellName;
+    int sizeX, sizeY, numPin;
     int cur_state = state_libCell;
     while(line)
     {
         switch (cur_state)
         {
-        case state_libCell:
-            masterCellName = splitted[1];
-            int sizeX = atoi(splitted[2]);
-            int sizeY = atoi(splitted[3]);
-            int numPin = atoi(splitted[4]);
-            curTech = create_techInst(data->tech_data, masterCellName, sizeX, sizeY, numPin);
-            cur_state = state_libPin;
-            break;
-        case state_libPin:
-            curTech->techPinArray[curTech->curNumPins].pinName = strdup(splitted[1]);
-            curTech->techPinArray[curTech->curNumPins].pinPos.x = atoi(splitted[2]);
-            curTech->techPinArray[curTech->curNumPins].pinPos.y = atoi(splitted[3]);
-            break;
-        case state_dieSize:
-            int pmin_x = atoi(splitted[1]);
-            int pmin_y = atoi(splitted[2]);
-            int pmax_x = atoi(splitted[3]);
-            int pmax_y = atoi(splitted[4]);
-            data->die_data = create_die(pmin_x, pmin_y, pmax_x, pmax_y);
-            cur_state = state_die;
-            break;
-
-        case state_die:
-            int rowLen = atoi(splitted[3]);
-            int rowHeight = atoi(splitted[4]);
-            int repeatCount = atoi(splitted[5]);
-            update_dieRow(data->die_data, rowLen, rowHeight, repeatCount);
-            cur_state = state_instDB;
-            break;
-        case state_instDB:
-            data->inst_data->numInst = atoi(splitted[1]);
-            cur_state = state_inst;
-            break;
-
-        case state_inst:
-            char* name = splitted[1];
-            char* libcellName = splitted[2];
-            techInst_ptr curTech = get_techInst(data->tech_data, libcellName);
-            if (curTech == NULL)
-            {
-                fprintf(stderr, "Failed to find tech\n");
-                exit(EXIT_FAILURE);
+            case state_libCell: 
+                printf("\n");
+                masterCellName = splitted[1];
+                sizeX = atoi(splitted[2]);
+                sizeY = atoi(splitted[3]);
+                numPin = atoi(splitted[4]);
+                curTech = create_techInst(data->tech_data, masterCellName, sizeX, sizeY, numPin);
+                cur_state = state_libPin;
+                break;
+            case state_libPin:
+                printf("State libpin %s : %s\n", curTech->techName, splitted[1]);
+                curTech->techPinArray[curTech->curNumPins].pinName = strdup(splitted[1]);
+                curTech->techPinArray[curTech->curNumPins].pinPos.x = atoi(splitted[2]);
+                curTech->techPinArray[curTech->curNumPins].pinPos.y = atoi(splitted[3]);
+                curTech->curNumPins++;
+                break;
+            case state_dieSize: {
+                int pmin_x = atoi(splitted[1]);
+                int pmin_y = atoi(splitted[2]);
+                int pmax_x = atoi(splitted[3]);
+                int pmax_y = atoi(splitted[4]);
+                data->die_data = create_die(pmin_x, pmin_y, pmax_x, pmax_y);
+                cur_state = state_die;
+                break;
             }
-            int pmin_x = atoi(splitted[3]);
-            int pmin_y = atoi(splitted[4]);
-            int rotate_flag = atoi(splitted[5]);
-            instance_ptr curInst = create_instance(data->inst_data, name, libcellName, pmin_x, pmin_y, rotate_flag);
-            inst_init(curInst);
-            curInst->techInst = curTech;
-            break;
-        case state_netDB:
-            data->net_data->numNet = atoi(splitted[1]);
-            cur_state = state_net;
-            break;
-        case state_net:
-            curNet = create_net(data->net_data, splitted[1], atoi(splitted[2]));
-            cur_state = state_netPin;
-            break;
-        case state_netPin:
-            splitToken_ptr cell_pin = split_dash(splitted[1]);
-            pin_ptr curPin = get_instPin(data, cell_pin->split[0], cell_pin->split[1]);
-            curPin->net = curNet;
-            break;
+            case state_die: {
+                int rowLen = atoi(splitted[3]);
+                int rowHeight = atoi(splitted[4]);
+                int repeatCount = atoi(splitted[5]);
+                update_dieRow(data->die_data, rowLen, rowHeight, repeatCount);
+                cur_state = state_instDB;
+                break;
+            }
+            case state_instDB:
+                printf("State instDB\n");
+                data->inst_data->numInst = atoi(splitted[1]);
+                cur_state = state_inst;
+                break;
 
-        default:
-            break;
+            case state_inst: {
+                char* name = splitted[1];
+                char* libcellName = splitted[2];
+                techInst_ptr curTech = get_techInst(data->tech_data, libcellName);
+                if (curTech == NULL)
+                {
+                    fprintf(stderr, "Failed to find tech\n");
+                    exit(EXIT_FAILURE);
+                }
+                int pmin_x = atoi(splitted[3]);
+                int pmin_y = atoi(splitted[4]);
+                char* rotate_flag = splitted[5];
+                instance_ptr curInst = create_instance(data->inst_data, name, libcellName, pmin_x, pmin_y, rotate_flag);
+                curInst->techInst = curTech;
+                inst_init(curInst);
+                break;
+            }
+            case state_netDB:
+                printf("State netdb\n");
+                data->net_data->numNet = atoi(splitted[1]);
+                cur_state = state_net;
+                break;
+            case state_net:
+                printf("State net\n");
+                curNet = create_net(data->net_data, splitted[1], atoi(splitted[2]));
+                cur_state = state_netPin;
+                break;
+            case state_netPin: {
+                printf("State netpin\n");
+                printf("%s\n", line);
+                splitToken_ptr cell_pin = split_dash(splitted[1]);
+                printf("Splitted\n");
+                printf("Inst = %s, Pin = %s\n", cell_pin->split[0], cell_pin->split[1]);
+                pin_ptr curPin = get_instPin(data, cell_pin->split[0], cell_pin->split[1]);
+                if (curPin == NULL)
+                {
+                    fprintf(stderr, "Failed to find pin\n");
+                    exit(EXIT_FAILURE);
+                }
+                printf("update curnet");
+                curPin->net = curNet;
+                break;
+            }
         }
         destroy_splitToken(Token);
         line = fgets(line, max_line_length, target_file);
@@ -164,7 +184,7 @@ database_ptr database_init(char* filedir)
         }
         if (cur_state == state_inst)
         {
-            if (!strcmp(splitted[0], "inst")) cur_state = state_inst;
+            if (!strcmp(splitted[0], "Inst")) cur_state = state_inst;
             else cur_state = state_netDB;
         }
         if (cur_state == state_netPin)

@@ -35,7 +35,7 @@ techInst_ptr create_techInst(techDB_ptr tech_data, char* techName, int sizeX, in
 techInst_ptr get_techInst(techDB_ptr tech_data, char* techName)
 {
     unsigned int techIdx = hash_function(techName);
-    techInst_ptr sweep = tech_data->hashTable[techIdx];
+    techInst_ptr sweep = tech_data->hashTable[techIdx].start;
     while(sweep)   
     {
         if (!strcmp(techName, sweep->techName)) return sweep;
@@ -61,7 +61,7 @@ void destroy_techDB(techDB_ptr rmdb)
 {
     for (int i = 0; i < default_hash_size; i++)
     {
-        techInst_ptr start = rmdb->hashTable[i];
+        techInst_ptr start = rmdb->hashTable[i].start;
         while(start)
         {
             techInst_ptr start_next = start->next;

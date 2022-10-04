@@ -17,7 +17,7 @@ typedef double prec;
 #define numThreads 16
 #define default_hash_size 1024
 #define hash_key 66337
-#define max_line_lengt 4096
+#define max_line_length 4096
 
 
 struct FPOS{

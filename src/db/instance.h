@@ -2,7 +2,7 @@
 #define _INSTANCE_H
 
 
-#include "../global.h"
+// #include "../global.h"
 #include "../utils.h"
 #include "net.h"
 

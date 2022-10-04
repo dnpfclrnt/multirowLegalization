@@ -2,6 +2,7 @@
 #define _DATABASE_H
 
 
+#include "../utils.h"
 #include "die.h"
 #include "instance.h"
 #include "net.h"

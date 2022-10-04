@@ -2,7 +2,7 @@
 #define _TECH_H
 
 
-#include "../global.h"
+// #include "../global.h"
 #include "../utils.h"
 
 

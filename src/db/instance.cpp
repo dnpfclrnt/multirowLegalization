@@ -73,7 +73,7 @@ void destroy_instDB(instDB_ptr rmdb)
         {
             instance_ptr sweep_next = sweep->next;
             destroy_instance(sweep);
-            sweep = sweep->next;
+            sweep = sweep_next;
         }
     }
     free(rmdb->hashTable);
@@ -85,7 +85,7 @@ void destroy_instDB(instDB_ptr rmdb)
 // Utility function
 instance_ptr _get_instance(instDB_ptr data, char* instName)
 {
-    int instHashIdx = hash_function(instname);
+    int instHashIdx = hash_function(instName);
     instance_ptr sweep = data->hashTable[instHashIdx].start;
     while(sweep)
     {

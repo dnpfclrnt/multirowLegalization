@@ -56,6 +56,7 @@ netDB_ptr create_netDB(void)
         data->hashTable[i].start = NULL;
     }
     data->netArray = NULL;
+    return data;
 }
 
 
