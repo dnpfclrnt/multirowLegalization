@@ -1,97 +1,98 @@
 #include "instance.h"
 
 
-instance_ptr create_instance(char* instName, int sizeX, int sizeY, int numPins, int rowHeight, ...)
+// Construction/Destruction function
+instance_ptr create_instance(instDB_ptr data, char* instName, char* techName, 
+                             int pmin_x, int pmin_y, char* rotate_flag)
 {
-    // Allocate memory for current structure
     instance_ptr inst = (instance_ptr)malloc(sizeof(struct INSTANCE));
-
     inst->instName = strdup(instName);
-
-    // Reset positions (defined in utils.h)
-    inst->techInst = NULL;
-    resetFPOS(inst->fpmin);
+    inst->techName = strdup(techName);
+    inst->pmin.x = pmin_x;
+    inst->pmin.y = pmin_y;
+    resetPOS(inst->cent);
+    resetPOS(inst->pmax);
+    
+    inst->fpmin = posToFPOS(inst->pmin);
     resetFPOS(inst->fcent);
     resetFPOS(inst->fpmax);
 
-    resetPOS(inst->pmin);
-    resetPOS(inst->cent);
-    resetPOS(inst->pmax);
+    resetPOS(inst->size);
+    resetFPOS(inst->fsize);
 
-    inst->size.x = sizeX;
-    inst->size.y = sizeY;
+    inst->numPins = 0;
+    inst->instPinArray = NULL;
 
-    inst->fsize.x = (prec)sizeX;
-    inst->fsize.y = (prec)sizeY;
+    inst->rotate_flag = strdup(rotate_flag);
 
-    inst->numPins = numPins;
-    inst->instPinArray = (pin_ptr*)calloc(sizeof(pin_ptr), numPins);
+    inst->rowHeight = -1;
+    inst->numRows = -1;
+    inst->rowIdxArray = NULL;
 
-    // Rowheight is saved for further calculation of rowIndex. 
-    inst->rowHeight = rowHeight;
-    inst->numRows = sizeY / rowHeight;
-    inst->rowIdxArray = (int*)calloc(sizeof(int), inst->numRows);
-
+    inst->instIdx = -1;
+    int instHashIdx = hash_function(inst->instName);
+    inst->next = data->hashTable[instHashIdx].start;
+    data->hashTable[instHashIdx].start = inst;
     return inst;
 }
 
 
 void destroy_instance(instance_ptr inst)
 {
-    free(inst->instName);
-    free(inst->instPinArray);
-    free(inst->rowIdxArray);
+    if (inst->instName) free(inst->instName);
+    if (inst->techName) free(inst->techName);
+    if (inst->instPinArray) free(inst->instPinArray);
+    if (inst->rotate_flag) free(inst->rotate_flag);
+    if (inst->rowIdxArray) free(inst->rowIdxArray);
     free(inst);
 }
 
 
-instDB_ptr create_instDB(int numInst)
+instDB_ptr create_instDB(void)
 {
     instDB_ptr data = (instDB_ptr)malloc(sizeof(struct INSTDB));
-    data->numInst = numInst;
+    data->numInst = 0;
     data->curNumInst = 0;
-    data->instArray = (instance_ptr*)calloc(sizeof(instance_ptr), numInst);
+
+    data->hashTable = (instHash_ptr)calloc(sizeof(struct INSTHASH), default_hash_size);
+    for (int i = 0; i < default_hash_size; i++)
+    {
+        data->hashTable[i].start = NULL;
+    }
+    data->instArray = NULL;
     return data;
 }
 
 
 void destroy_instDB(instDB_ptr rmdb)
 {
-    for (int i = 0; i < rmdb->numInst; i++)
+    for (int i = 0; i < default_hash_size; i++)
     {
-        if (rmdb->instArray[i])
+        instance_ptr sweep = rmdb->hashTable[i].start;
+        while(sweep)
         {
-            destroy_instance(rmdb->instArray[i]);
+            instance_ptr sweep_next = sweep->next;
+            destroy_instance(sweep);
+            sweep = sweep->next;
         }
     }
+    free(rmdb->hashTable);
+    if (rmdb->instArray) free(rmdb);
     free(rmdb);
 }
 
 
-void place_instance(instance_ptr inst, struct POS lowerLeft)
+// Utility function
+instance_ptr _get_instance(instDB_ptr data, char* instName)
 {
-    struct FPOS fLowerLeft = posToFPOS(lowerLeft);
-    inst->fpmin = fLowerLeft;
-    setFPOS(inst->fcent, fLowerLeft, fpdiv(inst->fsize, 2.0));
-    setFPOS(inst->fpmax, fLowerLeft, inst->fsize);
-
-    inst->pmin = lowerLeft;
-    setPOS(inst->cent, lowerLeft, pdiv(inst->size, 2));
-    setPOS(inst->pmax, lowerLeft, inst->size);
-
-
-    for (int i = 0; i < inst->numPins; i++)
+    int instHashIdx = hash_function(instname);
+    instance_ptr sweep = data->hashTable[instHashIdx].start;
+    while(sweep)
     {
-        pin_ptr pin = inst->instPinArray[i];
-        setFPOS(pin->absPos, fLowerLeft, pin->pinPos);
+        if (!strcmp(sweep->instName, instName)) return sweep;
+        sweep = sweep->next;
     }
-
-
-    int rowIdx = lowerLeft.x / inst->rowHeight;
-    for (int i = 0; i < inst->numRows; i++)
-    {
-        inst->rowIdxArray[i] = rowIdx + i * inst->rowHeight;
-    }
+    return NULL;
 }
 
 

@@ -5,6 +5,7 @@
 #include "die.h"
 #include "instance.h"
 #include "net.h"
+#include "tech.h"
 
 
 enum state{

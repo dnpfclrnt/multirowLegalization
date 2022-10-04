@@ -1,9 +1,23 @@
 #include "database.h"
 
 
+instance_ptr get_inst(database_ptr data, char* instName)
+{
+    return _get_instance(data->inst_data, instName);
+}
+
+
+net_ptr get_net(database_ptr data, char* netName)
+{
+    return _get_net(data->net_data, netName);
+}
+
+
 database_ptr create_database(void)
 {
     database_ptr data = (database_ptr)malloc(sizeof(struct DATABASE));
+    data->inst_data = create_instDB();
+    data->net_data = create_netDB();
     data->tech_data = create_techDB();
     return data;
 }

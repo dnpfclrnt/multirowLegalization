@@ -1,78 +1,90 @@
 #include "net.h"
 
 
-pin_ptr create_pin(int netIdx, int netPinIdx, int instIdx, int instPinIdx, 
-                   struct FPOS pinPos)
+// Construction/Destruction function
+pin_ptr create_pin(struct POS pinPos)
 {
     pin_ptr pin = (pin_ptr)malloc(sizeof(struct PIN));
-    pin->netIdx = netIdx;
-    pin->netPinIdx = netPinIdx;
-    pin->instIdx = instIdx;
-    pin->instPinIdx = instPinIdx;
-    pin->pinPos = pinPos;
+    pin->netIdx = pin->netPinIdx = -1;
+    pin->instIdx = pin->instPinIdx = -1;
+    pin->pinPos = posToFPOS(pinPos);
     return pin;
 }
 
 
-void destroy_pin(pin_ptr pin)
-{
-    free(pin);
-}
-
-
-net_ptr create_net(char* netName, int numPins)
+net_ptr create_net(netDB_ptr data, char* netName, int numPins)
 {
     net_ptr net = (net_ptr)malloc(sizeof(struct NET));
     net->netName = strdup(netName);
 
-    net->numInst = 0;
+    net->numInst = -1;
     net->instArray = NULL;
+
     net->numPins = numPins;
-    net->netPinArray = (pin_ptr*)calloc(sizeof(pin_ptr), numPins);
+    net->curNumPins = 0;
+    net->netPinArray = (pin_ptr)calloc(sizeof(struct PIN), numPins);
 
     resetFPOS(net->pmax);
     resetFPOS(net->pmin);
     net->HPWL = -1;
+
+    int netHashIdx = hash_function(net->netName);
+    net->next = data->hashTable[netHashIdx].start;
+    data->hashTable[netHashIdx].start = net;
     return net;
 }
 
 
 void destroy_net(net_ptr net)
 {
-    if (net->instArray)
-    {
-        free(net->instArray);
-    }
-    for (int i = 0; i < net->numPins; i++)
-    {
-        if (net->netPinArray[i])
-        {
-            destroy_pin(net->netPinArray[i]);
-        }
-    }
-    free(net->netPinArray);
+    if (net->netName) free(net->netName);
+    if (net->instArray) free(net->instArray);
+    if (net->netPinArray) free(net->netPinArray);
     free(net);
 }
 
 
-netDB_ptr create_netDB(int numNet)
+netDB_ptr create_netDB(void)
 {
     netDB_ptr data = (netDB_ptr)malloc(sizeof(struct NETDB));
-    data->numNet = numNet;
+    data->numNet = 0;
     data->curNumNet = 0;
-    data->netArray = (net_ptr*)calloc(sizeof(net_ptr), numNet);
-    return data;
+    data->hashTable = (netHash_ptr)calloc(sizeof(struct NETHASH), default_hash_size);
+    for (int i = 0; i < default_hash_size; i++)
+    {
+        data->hashTable[i].start = NULL;
+    }
+    data->netArray = NULL;
 }
 
 
-void destroy_netDB(netDB_ptr rmdb)
+void  destroy_netDB(netDB_ptr rmdb)
 {
-    for (int i = 0; i < rmdb->numNet; ++i) 
+    for (int i = 0; i < default_hash_size; i++)
     {
-        if (rmdb->netArray[i])
+        net_ptr sweep = rmdb->hashTable[i].start;
+        while(sweep)
         {
-            destroy_net(rmdb->netArray[i]);
+            net_ptr sweep_next = sweep->next;
+            destroy_net(sweep);
+            sweep = sweep_next;
         }
     }
+    free(rmdb->hashTable);
+    if (rmdb->netArray) free(rmdb->netArray);
     free(rmdb);
+}
+
+
+// Utility function
+net_ptr _get_net(netDB_ptr data, char* netName)
+{
+    int hashIdx = hash_function(netName);
+    net_ptr sweep = data->hashTable[hashIdx].start;
+    while(sweep)
+    {
+        if (!strcmp(sweep->netName, netName)) return sweep;
+        sweep = sweep->next;
+    }
+    return NULL;
 }

@@ -21,30 +21,36 @@ struct NET{
     int* instArray;
 
     int numPins;
+    int curNumPins;
     pin_ptr* netPinArray;
 
     struct FPOS pmax;
     struct FPOS pmin;
     prec HPWL;
-
+    struct NET* next;
 }; typedef struct NET* net_ptr;
+
+
+struct NETHASH{
+    net_ptr start;
+}; typedef struct NETHASH* netHash_ptr;
 
 
 struct NETDB{
     int numNet;
     int curNumNet;
+    netHash_ptr hashTable;
     net_ptr* netArray;
 }; typedef struct NETDB* netDB_ptr;
 
 
 // List of functions
-pin_ptr create_pin(int netIdx, int netPinIdx, int instIdx, int instPinIdx, 
-                   struct FPOS pinPos);
-void destroy_pin(pin_ptr pin);
-net_ptr create_net(char* netName, int numPins);
+// Const/Dist functions
+pin_ptr create_pin(struct POS pinPos);
+net_ptr create_net(netDB_ptr data, char* netName, int numPins);
 void destroy_net(net_ptr net);
-netDB_ptr create_netDB(int numNet);
-void destroy_netDB(netDB_ptr rmdb);
-
+netDB_ptr create_netDB(void);
+void  destroy_netDB(netDB_ptr rmdb);
+net_ptr _get_net(netDB_ptr data, char* netName);
 
 #endif
