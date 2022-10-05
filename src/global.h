@@ -30,3 +30,15 @@ struct POS{
     int x;
     int y;
 };
+
+
+struct BBOX{
+    struct POS pmin;
+    struct POS pmax;
+};
+
+
+// Mode selection
+#define DRV_VISUAL /*true*/ false
+#define mode_x 0
+#define mode_y 1

@@ -7,6 +7,12 @@ instance_ptr get_inst(database_ptr data, char* instName)
 }
 
 
+instance_ptr get_instWithIdx(database_ptr data, int idx)
+{
+    return data->inst_data->instArray[idx];
+}
+
+
 pin_ptr get_instPin(database_ptr data, char* instname, char* pinName)
 {
     instance_ptr inst = get_inst(data, instname);
@@ -38,14 +44,12 @@ void inst_init(instance_ptr inst)
     techInst_ptr curTech = (techInst_ptr)inst->techInst;
 
     struct FPOS fsize = posToFPOS(curTech->size);
-    inst->fcent = setFPOS(inst->fpmin, fpdiv(fsize, 2.0));
-    inst->fpmax = setFPOS(inst->fpmin, fsize);
-    
-    inst->cent = setPOS(inst->pmin, pdiv(curTech->size, 2));
-    inst->pmax = setPOS(inst->pmin, curTech->size);
 
     inst->size = curTech->size;
     inst->fsize = fsize;
+
+    inst->area = (unsigned long long)inst->size.x * (unsigned long long)inst->size.y;
+    inst->farea = inst->fsize.x * inst->fsize.y;
 
     inst->numPins = curTech->numPins;
     inst->instPinArray = (pin_ptr*)calloc(sizeof(pin_ptr), inst->numPins);
@@ -57,6 +61,7 @@ void inst_init(instance_ptr inst)
         pin->isPort = false;
         inst->instPinArray[i] = pin;
     }
+    place_inst(inst, inst->pmin);
 }
 
 
@@ -96,11 +101,17 @@ database_ptr database_init(char* filedir)
     database_ptr data = create_database();
     char* masterCellName;
     int sizeX, sizeY, numPin;
-    int cur_state = state_libCell;
+    struct POS site;
+    int cur_state = state_site;
     while(line)
     {
         switch (cur_state)
         {
+            case state_site:
+                site.x = atoi(splitted[1]);
+                site.y = atoi(splitted[2]);
+                cur_state = state_libCell;
+                break;
             case state_libCell: 
                 masterCellName = splitted[1];
                 sizeX = atoi(splitted[2]);
@@ -121,6 +132,7 @@ database_ptr database_init(char* filedir)
                 int pmax_x = atoi(splitted[3]);
                 int pmax_y = atoi(splitted[4]);
                 data->die_data = create_die(pmin_x, pmin_y, pmax_x, pmax_y);
+                data->die_data->site = site;
                 cur_state = state_die;
                 break;
             }
@@ -328,16 +340,16 @@ database_ptr database_init(char* filedir)
 void destroy_database(database_ptr data)
 {
     printf("PROC: Start destruction\n");
-    printf("PROC: Destroying Die data\n");
+    // printf("PROC: Destroying Die data\n");
     destroy_die(data->die_data);
-    printf("PROC: Destroying Inst data\n");
+    // printf("PROC: Destroying Inst data\n");
     destroy_instDB(data->inst_data);
-    printf("PROC: Destroying Net data\n");
+    // printf("PROC: Destroying Net data\n");
     destroy_netDB(data->net_data);
-    printf("PROC: Destroying Tech data\n");
+    // printf("PROC: Destroying Tech data\n");
     destroy_techDB(data->tech_data);
-    printf("PROC: Destroying Port data\n");
+    // printf("PROC: Destroying Port data\n");
     destroy_portDB(data->port_data);
-    printf("PROC: Finished destroying data\n");
+    // printf("PROC: Finished destroying data\n");
     free(data);
 }

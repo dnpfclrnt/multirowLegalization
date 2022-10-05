@@ -1,5 +1,5 @@
 #include "src/db/database.h"
-#include "src/lg/legality.h"
+#include "src/lg/legalization.h"
 
 
 int main(int argc, char** argv)
@@ -16,11 +16,8 @@ int main(int argc, char** argv)
     printf("=======================================\n");
 
     placmenet_map_init(data);
+    legalize(data);
     check_legality_global(data);
-
-    // print_allInst(data->inst_data);
-    // print_allNets(data->net_data);
-    // print_allPorts(data->port_data);
 
     destroy_database(data);
     return 0;

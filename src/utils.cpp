@@ -40,6 +40,24 @@ struct FPOS posToFPOS(struct POS target)
 }
 
 
+struct POS subtractPOS(struct POS first, struct POS second)
+{
+    struct POS ret;
+    ret.x = first.x - second.x;
+    ret.y = first.y - second.y;
+    return ret;
+}
+
+
+struct FPOS subtractFPOS(struct FPOS first, struct FPOS second)
+{
+    struct FPOS ret;
+    ret.x = first.x - second.x;
+    ret.y = first.y - second.y;
+    return ret;
+}
+
+
 struct POS fposToPOS(struct FPOS target)
 {
     struct POS ret;

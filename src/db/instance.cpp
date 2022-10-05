@@ -61,6 +61,7 @@ instDB_ptr create_instDB(void)
         data->hashTable[i].start = NULL;
     }
     data->instArray = NULL;
+    data->initialPOS = NULL;
     return data;
 }
 
@@ -79,6 +80,7 @@ void destroy_instDB(instDB_ptr rmdb)
     }
     free(rmdb->hashTable);
     if (rmdb->instArray) free(rmdb->instArray);
+    if (rmdb->initialPOS) free(rmdb->initialPOS);
     free(rmdb);
 }
 
@@ -139,5 +141,23 @@ void print_allInst(instDB_ptr data)
         printf("Inst %s @(%d, %d)\n", curInst->instName, 
                                       curInst->pmin.x, 
                                       curInst->pmin.y);
+    }
+}
+
+
+void place_inst(instance_ptr inst, struct POS pmin)
+{
+    inst->pmin = pmin;
+    inst->fpmin = posToFPOS(pmin);
+
+    inst->pmax = setPOS(pmin, inst->size);
+    inst->fpmax = setFPOS(inst->fpmin, inst->fsize);
+
+    inst->cent = setPOS(pmin, pdiv(inst->size, 2));
+    inst->fcent = setFPOS(inst->fpmin, fpdiv(inst->fsize, 2.0));
+    for (int i = 0; i < inst->numPins; i++)
+    {
+        pin_ptr pin = inst->instPinArray[i];
+        pin->absPos = setFPOS(inst->fpmin, pin->pinPos);
     }
 }

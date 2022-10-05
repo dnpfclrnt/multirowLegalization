@@ -23,6 +23,9 @@ struct INSTANCE{
     struct POS size;
     struct FPOS fsize;
 
+    unsigned long long area;
+    prec farea;
+
     int numPins;
     pin_ptr* instPinArray;
 
@@ -48,6 +51,7 @@ struct INSTDB{
 
     instHash_ptr hashTable;
     instance_ptr* instArray;
+    struct POS* initialPOS;
 }; typedef struct INSTDB* instDB_ptr;
 
 
@@ -65,5 +69,6 @@ void flip_instance_horizontal(instance_ptr inst);
 void flip_instance_vertical(instance_ptr inst);
 void rotate_instance(instance_ptr inst);
 void print_allInst(instDB_ptr data);
+void place_inst(instance_ptr inst, struct POS pmin);
 
 #endif

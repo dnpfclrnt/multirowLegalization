@@ -26,6 +26,8 @@ struct DIE{
     int rowHeight;
     int repeatCount;
 
+    struct POS site;
+
     instance_ptr** placementMap;
 }; typedef struct DIE* die_ptr;
 
