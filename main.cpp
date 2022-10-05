@@ -14,9 +14,9 @@ int main(int argc, char** argv)
     printf("Data construction time : %3lf\n", data_construction_time);
     printf("=======================================\n");
 
-    print_allInst(data->inst_data);
-    print_allNets(data->net_data);
-    print_allPorts(data->port_data);
+    // print_allInst(data->inst_data);
+    // print_allNets(data->net_data);
+    // print_allPorts(data->port_data);
 
     destroy_database(data);
     return 0;
