@@ -38,11 +38,11 @@ void inst_init(instance_ptr inst)
     techInst_ptr curTech = (techInst_ptr)inst->techInst;
 
     struct FPOS fsize = posToFPOS(curTech->size);
-    setFPOS(inst->fcent, inst->fpmin, fpdiv(fsize, 2.0));
-    setFPOS(inst->fpmax, inst->fpmin, fsize);
+    inst->fcent = setFPOS(inst->fpmin, fpdiv(fsize, 2.0));
+    inst->fpmax = setFPOS(inst->fpmin, fsize);
     
-    setPOS(inst->cent, inst->pmin, pdiv(curTech->size, 2));
-    setPOS(inst->pmax, inst->pmin, curTech->size);
+    inst->cent = setPOS(inst->pmin, pdiv(curTech->size, 2));
+    inst->pmax = setPOS(inst->pmin, curTech->size);
 
     inst->size = curTech->size;
     inst->fsize = fsize;
@@ -260,17 +260,19 @@ database_ptr database_init(char* filedir)
         port_ptr portSweep = data->port_data->hashTable[i].start;
         while(instSweep)
         {
+            instSweep->instIdx = data->inst_data->curNumInst;
             data->inst_data->instArray[data->inst_data->curNumInst++] = instSweep;
             instSweep = instSweep->next;
         }
         while (netSweep)
         {
-            // printf("NET %s %d\n", netSweep->netName, data->net_data->curNumNet);
+            netSweep->netIdx = data->net_data->curNumNet;
             data->net_data->netArray[data->net_data->curNumNet++] = netSweep;
             netSweep = netSweep->next;
         }
         while (portSweep)
         {
+            portSweep->portIdx = data->port_data->curNumPorts;
             data->port_data->portArray[data->port_data->curNumPorts++] = portSweep;
             portSweep = portSweep->next;
         }
@@ -288,6 +290,7 @@ database_ptr database_init(char* filedir)
     for (int i = 0; i < data->inst_data->numInst; i++)
     {
         instance_ptr curInst = data->inst_data->instArray[i];
+        curInst->rowHeight = data->die_data->rowHeight;
         for (int j = 0; j < curInst->numPins; j++)
         {
             pin_ptr curPin = curInst->instPinArray[j];

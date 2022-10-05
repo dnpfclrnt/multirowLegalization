@@ -25,6 +25,7 @@ struct NET{
     int numInst;
     int* instArray;
 
+    int netIdx;
     int numPins;
     int curNumPins;
     pin_ptr* netPinArray;

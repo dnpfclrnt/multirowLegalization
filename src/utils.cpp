@@ -13,17 +13,21 @@ void resetPOS(struct POS target)
 }
 
 
-void setFPOS(struct FPOS target, struct FPOS place, struct FPOS disp)
+struct FPOS setFPOS(struct FPOS place, struct FPOS disp)
 {
+    struct FPOS target;
     target.x = place.x + disp.x;
     target.y = place.y + disp.y;
+    return target;
 }
 
 
-void setPOS(struct POS target, struct POS place, struct POS disp)
+struct POS setPOS(struct POS place, struct POS disp)
 {
+    struct POS target;
     target.x = place.x + disp.x;
     target.y = place.y + disp.y;
+    return target;
 }
 
 

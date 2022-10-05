@@ -10,15 +10,16 @@ instance_ptr create_instance(instDB_ptr data, char* instName, char* techName,
     inst->techName = strdup(techName);
     inst->pmin.x = pmin_x;
     inst->pmin.y = pmin_y;
-    resetPOS(inst->cent);
-    resetPOS(inst->pmax);
+    
+    inst->cent.x = inst->cent.y = -1;
+    inst->pmax.x = inst->pmax.y = -1;
     
     inst->fpmin = posToFPOS(inst->pmin);
-    resetFPOS(inst->fcent);
-    resetFPOS(inst->fpmax);
+    inst->fcent.x = inst->fcent.y = -1;
+    inst->fpmax.x = inst->fpmax.y = -1;
 
-    resetPOS(inst->size);
-    resetFPOS(inst->fsize);
+    inst->size.x = inst->size.y = -1;
+    inst->fsize.x = inst->fsize.y = -1;
 
     inst->numPins = 0;
     inst->instPinArray = NULL;
@@ -101,8 +102,8 @@ void flip_instance_horizontal(instance_ptr inst)
     for (int i = 0; i < inst->numPins; i++)
     {
         pin_ptr pin = inst->instPinArray[i];
-        pin->absPos.x = inst->fpmax.x - pin->absPos.x;
-        setFPOS(pin->pinPos, inst->fpmin, pin->absPos);
+        pin->pinPos.x = inst->fsize.x - pin->pinPos.x;
+        pin->absPos.x = inst->fpmin.x + pin->pinPos.x;
     }
 }
 
@@ -112,8 +113,8 @@ void flip_instance_vertical(instance_ptr inst)
     for (int i = 0; i < inst->numPins; i++)
     {
         pin_ptr pin = inst->instPinArray[i];
-        pin->absPos.y = inst->fpmax.y - pin->absPos.y;
-        setFPOS(pin->pinPos, inst->fpmin, pin->absPos);
+        pin->pinPos.y = inst->fsize.y - pin->pinPos.y;
+        pin->absPos.y = inst->fpmin.y + pin->pinPos.y;
     }
 }
 
@@ -123,9 +124,9 @@ void rotate_instance(instance_ptr inst)
     for (int i = 0; i < inst->numPins; i++)
     {
         pin_ptr pin = inst->instPinArray[i];
-        pin->absPos.x = inst->fpmax.x - pin->absPos.x;
-        pin->absPos.y = inst->fpmax.y - pin->absPos.y;
-        setFPOS(pin->pinPos, inst->fpmin, pin->absPos);
+        pin->pinPos.x = inst->fsize.x - pin->pinPos.x;
+        pin->pinPos.y = inst->fsize.y - pin->pinPos.y;
+        pin->absPos = setFPOS(inst->fpmin, pin->pinPos);
     }
 }
 

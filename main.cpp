@@ -16,6 +16,7 @@ int main(int argc, char** argv)
     printf("=======================================\n");
 
     placmenet_map_init(data);
+    check_legality_global(data);
 
     // print_allInst(data->inst_data);
     // print_allNets(data->net_data);

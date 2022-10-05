@@ -8,6 +8,7 @@
 
 struct PORT{
     char* portName;
+    int portIdx;
     struct POS cent;
     struct FPOS fcent;
     pin_ptr pin;
