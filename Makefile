@@ -1,8 +1,7 @@
-all:
-	compile
+all: compile
 
 clean:
 	rm ./main
 
 compile:
-	g++ ./src/db/*.cpp -o main
+	g++ -O3 ./src/db/*.cpp ./src/*.cpp ./main.cpp  -o main
