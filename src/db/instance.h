@@ -64,5 +64,6 @@ instance_ptr _get_instance(instDB_ptr data, char* instName);
 void flip_instance_horizontal(instance_ptr inst);
 void flip_instance_vertical(instance_ptr inst);
 void rotate_instance(instance_ptr inst);
+void print_allInst(instDB_ptr data);
 
 #endif

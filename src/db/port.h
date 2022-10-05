@@ -35,4 +35,5 @@ void destroy_port(port_ptr port);
 portDB_ptr create_portDB(void);
 void destroy_portDB(portDB_ptr rmdb);
 
+void print_allPorts(portDB_ptr data);
 #endif

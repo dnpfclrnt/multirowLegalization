@@ -57,5 +57,6 @@ void destroy_net(net_ptr net);
 netDB_ptr create_netDB(void);
 void  destroy_netDB(netDB_ptr rmdb);
 net_ptr _get_net(netDB_ptr data, char* netName);
+void print_allNets(netDB_ptr data);
 
 #endif

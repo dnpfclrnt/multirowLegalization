@@ -56,3 +56,16 @@ void destroy_portDB(portDB_ptr rmdb)
     if (rmdb->portArray) free(rmdb->portArray);
     free(rmdb);
 }
+
+
+// Utility function
+void print_allPorts(portDB_ptr data)
+{
+    for (int i = 0; i < data->numPorts; i++)
+    {
+        port_ptr curPort = data->portArray[i];
+        printf("Port %s @(%d, %d)\n", curPort->portName,
+                                      curPort->cent.x,
+                                      curPort->cent.y);
+    }
+}

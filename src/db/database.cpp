@@ -166,6 +166,9 @@ database_ptr database_init(char* filedir)
                 int cent_y = atoi(splitted[3]);
                 char* rotateflag = splitted[4];
                 port_ptr port = create_port(data->port_data, portName, cent_x, cent_y, rotateflag);
+                port->pin = create_pin(port->fcent);
+                port->pin->inst = port;
+                port->pin->isPort = true;
                 break;
             }
 
@@ -183,10 +186,7 @@ database_ptr database_init(char* filedir)
                 if (!strcmp(cell_pin->split[0], "PIN"))
                 {
                     port_ptr port = get_port(data, cell_pin->split[1]);
-                    pin_ptr curPin = create_pin(port->fcent);
-                    port->pin = curPin;
-                    curPin->inst = port;
-                    curPin->isPort = true;
+                    pin_ptr curPin = port->pin;
                     curPin->net = curNet;
                     curNet->netPinArray[curNet->curNumPins++] = curPin;
                 }
@@ -232,20 +232,20 @@ database_ptr database_init(char* filedir)
             else cur_state = state_net;
         }
     }
-    for (int i = 0; i < default_hash_size; i++)
-    {
-        techInst_ptr sweep = data->tech_data->hashTable[i].start;
-        while (sweep)
-        {
-            printf("MC %s\n", sweep->techName);
-            for (int j = 0; j < sweep->numPins; j++)
-            {
-                struct POS pPos = fposToPOS(sweep->techPinArray[j].pinPos);
-                printf("Pin %s @(%d,%d)\n", sweep->techPinArray[j].pinName, pPos.x, pPos.y);
-            }
-            sweep = sweep->next;
-        }
-    }
+    // for (int i = 0; i < default_hash_size; i++)
+    // {
+    //     techInst_ptr sweep = data->tech_data->hashTable[i].start;
+    //     while (sweep)
+    //     {
+    //         printf("MC %s\n", sweep->techName);
+    //         for (int j = 0; j < sweep->numPins; j++)
+    //         {
+    //             struct POS pPos = fposToPOS(sweep->techPinArray[j].pinPos);
+    //             printf("Pin %s @(%d,%d)\n", sweep->techPinArray[j].pinName, pPos.x, pPos.y);
+    //         }
+    //         sweep = sweep->next;
+    //     }
+    // }
     printf("PROC: Finished data construction. Start data link\n");
     data->inst_data->instArray = (instance_ptr*)calloc(sizeof(instance_ptr), data->inst_data->numInst);
     data->net_data->netArray = (net_ptr*)calloc(sizeof(net_ptr), data->net_data->numNet);
@@ -282,6 +282,9 @@ database_ptr database_init(char* filedir)
                                                             data->net_data->numNet, 
                                                             data->port_data->curNumPorts, data
                                                             ->port_data->numPorts);
+    data->inst_data->numInst = data->inst_data->curNumInst;
+    data->net_data->numNet = data->net_data->curNumNet;
+    data->port_data->numPorts = data->port_data->curNumPorts;
     for (int i = 0; i < data->inst_data->numInst; i++)
     {
         instance_ptr curInst = data->inst_data->instArray[i];
@@ -292,44 +295,46 @@ database_ptr database_init(char* filedir)
             curPin->instPinIdx = j;
         }
     }
-    printf("Finished inst\n");
-    for (int i = 0; i < data->net_data->curNumNet; i++)
+    for (int i = 0; i < data->net_data->numNet; i++)
     {
-        // printf("NET %d/%d\n", i, data->net_data->numNet);
         net_ptr curNet = data->net_data->netArray[i];
-        // printf("Net name = %s\n", curNet->netName);
-        // printf("Num pins = %d\n", curNet->numPins);
         for (int j = 0; j < curNet->numPins; j++)
         {
             pin_ptr curPin = curNet->netPinArray[j];
-            // printf("Pin %s %d/%d\n", curPin->pinName, j, curNet->numPins);
             curPin->netIdx = i;
             curPin->netPinIdx = j;
         }
     }
-    printf("Finished net\n");
-    printf("Num port = %d\n", data->port_data->numPorts);
     for (int i = 0; i < data->port_data->numPorts; i++)
     {
         port_ptr curPort = data->port_data->portArray[i];
-        printf("Port %s %d/%d\n", curPort->portName, i, data->port_data->numPorts);
         pin_ptr curPin = curPort->pin;
-        printf("Pin check\n");
+        if (curPin == NULL)
+        {
+            fprintf(stderr, "Port %s pin failure\n", curPort->portName);
+            exit(EXIT_FAILURE);
+        }
         curPin->instIdx = i;
-        printf("Put port\n");
         curPin->instPinIdx = -1;
     }
-    printf("Finished port\n");
+    printf("PROC: Finished Construction\n");
     return data;
 }
 
 
 void destroy_database(database_ptr data)
 {
+    printf("PROC: Start destruction\n");
+    printf("PROC: Destroying Die data\n");
     destroy_die(data->die_data);
+    printf("PROC: Destroying Inst data\n");
     destroy_instDB(data->inst_data);
+    printf("PROC: Destroying Net data\n");
     destroy_netDB(data->net_data);
+    printf("PROC: Destroying Tech data\n");
     destroy_techDB(data->tech_data);
+    printf("PROC: Destroying Port data\n");
     destroy_portDB(data->port_data);
+    printf("PROC: Finished destroying data\n");
     free(data);
 }

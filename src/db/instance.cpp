@@ -77,7 +77,7 @@ void destroy_instDB(instDB_ptr rmdb)
         }
     }
     free(rmdb->hashTable);
-    if (rmdb->instArray) free(rmdb);
+    if (rmdb->instArray) free(rmdb->instArray);
     free(rmdb);
 }
 
@@ -126,5 +126,17 @@ void rotate_instance(instance_ptr inst)
         pin->absPos.x = inst->fpmax.x - pin->absPos.x;
         pin->absPos.y = inst->fpmax.y - pin->absPos.y;
         setFPOS(pin->pinPos, inst->fpmin, pin->absPos);
+    }
+}
+
+
+void print_allInst(instDB_ptr data)
+{
+    for (int i = 0; i < data->numInst; i++)
+    {
+        instance_ptr curInst = data->instArray[i];
+        printf("Inst %s @(%d, %d)\n", curInst->instName, 
+                                      curInst->pmin.x, 
+                                      curInst->pmin.y);
     }
 }

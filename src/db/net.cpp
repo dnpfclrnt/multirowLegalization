@@ -90,3 +90,13 @@ net_ptr _get_net(netDB_ptr data, char* netName)
     }
     return NULL;
 }
+
+
+void print_allNets(netDB_ptr data)
+{
+    for (int i = 0; i < data->numNet; i++)
+    {
+        net_ptr net = data->netArray[i];
+        printf("Net %s\n", net->netName);
+    }
+}
