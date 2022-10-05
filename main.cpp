@@ -1,4 +1,5 @@
 #include "src/db/database.h"
+#include "src/lg/legality.h"
 
 
 int main(int argc, char** argv)
@@ -13,6 +14,8 @@ int main(int argc, char** argv)
     printf("=======================================\n");
     printf("Data construction time : %3lf sec\n", data_construction_time);
     printf("=======================================\n");
+
+    placmenet_map_init(data);
 
     // print_allInst(data->inst_data);
     // print_allNets(data->net_data);
