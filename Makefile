@@ -1,7 +1,7 @@
-all: compile
+all: linux 
 
 clean:
 	rm ./main
 
-compile:
+linux:
 	g++ -O3 ./src/db/*.cpp ./src/lg/*.cpp ./src/*.cpp ./main.cpp  -o main
