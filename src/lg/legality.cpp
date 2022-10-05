@@ -16,5 +16,4 @@ void placmenet_map_init(database_ptr data)
         }
     }
     printf("PROC: Placement Map initialized\n");
-    sleep(10);
 }
