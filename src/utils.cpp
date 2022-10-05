@@ -180,3 +180,13 @@ void destroy_splitToken(splitToken_ptr rm_token)
     free(rm_token->split);
     free(rm_token);
 }
+
+
+double stopwatch(struct timeval *begin, struct timeval *finish) {
+    /*
+     This function is used to measure the performance time in quickB
+     */
+	int sec = finish->tv_sec - begin->tv_sec;
+	int usec = finish->tv_usec - begin->tv_usec;
+	return (sec + usec / 1e6);
+}

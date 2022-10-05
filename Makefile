@@ -4,4 +4,4 @@ clean:
 	rm ./main
 
 compile:
-	g++ ./src/db/*.cpp ./main.cpp  -o main
+	g++ ./src/db/*.cpp ./src/*.cpp ./main.cpp  -o main

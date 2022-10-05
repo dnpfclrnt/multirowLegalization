@@ -11,7 +11,7 @@ struct PIN{
     int netPinIdx;
     int instIdx;
     int instPinIdx;
-
+    bool isPort;
     void* inst;
     void* net;
     
