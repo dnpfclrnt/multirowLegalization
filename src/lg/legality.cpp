@@ -8,7 +8,7 @@ void placmenet_map_init(database_ptr data)
 
     unsigned int mem_used = rowLen * numRows * sizeof(bool);
     mem_used = mem_used / 1024 / 1024;
-    printf("PROC: Using = %u MB\n", mem_used);
+    printf("PROC: Placement Map Mem Util: %u MB\n", mem_used);
 
     data->die_data->placementMap = (bool**)malloc(sizeof(bool*) * numRows);
     for (int i = 0; i < numRows; i++)
