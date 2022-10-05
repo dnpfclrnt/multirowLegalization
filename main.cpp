@@ -11,7 +11,7 @@ int main(int argc, char** argv)
     gettimeofday(&dataConstruction, NULL);
     double data_construction_time = stopwatch(&start, &dataConstruction);
     printf("=======================================\n");
-    printf("Data construction time : %3lf\n", data_construction_time);
+    printf("Data construction time : %3lf sec\n", data_construction_time);
     printf("=======================================\n");
 
     // print_allInst(data->inst_data);
