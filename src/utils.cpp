@@ -13,17 +13,21 @@ void resetPOS(struct POS target)
 }
 
 
-void setFPOS(struct FPOS target, struct FPOS place, struct FPOS disp)
+struct FPOS setFPOS(struct FPOS place, struct FPOS disp)
 {
+    struct FPOS target;
     target.x = place.x + disp.x;
     target.y = place.y + disp.y;
+    return target;
 }
 
 
-void setPOS(struct POS target, struct POS place, struct POS disp)
+struct POS setPOS(struct POS place, struct POS disp)
 {
+    struct POS target;
     target.x = place.x + disp.x;
     target.y = place.y + disp.y;
+    return target;
 }
 
 
@@ -32,6 +36,24 @@ struct FPOS posToFPOS(struct POS target)
     struct FPOS ret;
     ret.x = (prec)target.x;
     ret.y = (prec)target.y;
+    return ret;
+}
+
+
+struct POS subtractPOS(struct POS first, struct POS second)
+{
+    struct POS ret;
+    ret.x = first.x - second.x;
+    ret.y = first.y - second.y;
+    return ret;
+}
+
+
+struct FPOS subtractFPOS(struct FPOS first, struct FPOS second)
+{
+    struct FPOS ret;
+    ret.x = first.x - second.x;
+    ret.y = first.y - second.y;
     return ret;
 }
 

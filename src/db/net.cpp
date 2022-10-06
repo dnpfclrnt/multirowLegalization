@@ -25,8 +25,8 @@ net_ptr create_net(netDB_ptr data, char* netName, int numPins)
     net->curNumPins = 0;
     net->netPinArray = (pin_ptr*)calloc(sizeof(pin_ptr), numPins);
 
-    resetFPOS(net->pmax);
-    resetFPOS(net->pmin);
+    net->pmax.x = net->pmax.y = -1;
+    net->pmin.x = net->pmin.y = -1;
     net->HPWL = -1;
 
     int netHashIdx = hash_function(net->netName);

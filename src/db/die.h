@@ -2,7 +2,7 @@
 #define _DIE_H
 // #include "../global.h"
 #include "../utils.h"
-
+#include "instance.h"
 
 struct ROW{
     int rowIdx;
@@ -26,7 +26,9 @@ struct DIE{
     int rowHeight;
     int repeatCount;
 
-    bool** placementMap;
+    struct POS site;
+
+    instance_ptr** placementMap;
 }; typedef struct DIE* die_ptr;
 
 

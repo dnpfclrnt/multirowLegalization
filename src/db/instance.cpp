@@ -10,15 +10,16 @@ instance_ptr create_instance(instDB_ptr data, char* instName, char* techName,
     inst->techName = strdup(techName);
     inst->pmin.x = pmin_x;
     inst->pmin.y = pmin_y;
-    resetPOS(inst->cent);
-    resetPOS(inst->pmax);
+    
+    inst->cent.x = inst->cent.y = -1;
+    inst->pmax.x = inst->pmax.y = -1;
     
     inst->fpmin = posToFPOS(inst->pmin);
-    resetFPOS(inst->fcent);
-    resetFPOS(inst->fpmax);
+    inst->fcent.x = inst->fcent.y = -1;
+    inst->fpmax.x = inst->fpmax.y = -1;
 
-    resetPOS(inst->size);
-    resetFPOS(inst->fsize);
+    inst->size.x = inst->size.y = -1;
+    inst->fsize.x = inst->fsize.y = -1;
 
     inst->numPins = 0;
     inst->instPinArray = NULL;
@@ -30,6 +31,13 @@ instance_ptr create_instance(instDB_ptr data, char* instName, char* techName,
     inst->rowIdxArray = NULL;
 
     inst->instIdx = -1;
+
+
+    inst->left_pushable = true;
+    inst->right_pushable = true;
+    inst->down_pushable = true;
+    inst->up_pushable = true;
+    
     int instHashIdx = hash_function(inst->instName);
     inst->next = data->hashTable[instHashIdx].start;
     data->hashTable[instHashIdx].start = inst;
@@ -60,6 +68,7 @@ instDB_ptr create_instDB(void)
         data->hashTable[i].start = NULL;
     }
     data->instArray = NULL;
+    data->initialPOS = NULL;
     return data;
 }
 
@@ -78,6 +87,7 @@ void destroy_instDB(instDB_ptr rmdb)
     }
     free(rmdb->hashTable);
     if (rmdb->instArray) free(rmdb->instArray);
+    if (rmdb->initialPOS) free(rmdb->initialPOS);
     free(rmdb);
 }
 
@@ -101,8 +111,8 @@ void flip_instance_horizontal(instance_ptr inst)
     for (int i = 0; i < inst->numPins; i++)
     {
         pin_ptr pin = inst->instPinArray[i];
-        pin->absPos.x = inst->fpmax.x - pin->absPos.x;
-        setFPOS(pin->pinPos, inst->fpmin, pin->absPos);
+        pin->pinPos.x = inst->fsize.x - pin->pinPos.x;
+        pin->absPos.x = inst->fpmin.x + pin->pinPos.x;
     }
 }
 
@@ -112,8 +122,8 @@ void flip_instance_vertical(instance_ptr inst)
     for (int i = 0; i < inst->numPins; i++)
     {
         pin_ptr pin = inst->instPinArray[i];
-        pin->absPos.y = inst->fpmax.y - pin->absPos.y;
-        setFPOS(pin->pinPos, inst->fpmin, pin->absPos);
+        pin->pinPos.y = inst->fsize.y - pin->pinPos.y;
+        pin->absPos.y = inst->fpmin.y + pin->pinPos.y;
     }
 }
 
@@ -123,9 +133,9 @@ void rotate_instance(instance_ptr inst)
     for (int i = 0; i < inst->numPins; i++)
     {
         pin_ptr pin = inst->instPinArray[i];
-        pin->absPos.x = inst->fpmax.x - pin->absPos.x;
-        pin->absPos.y = inst->fpmax.y - pin->absPos.y;
-        setFPOS(pin->pinPos, inst->fpmin, pin->absPos);
+        pin->pinPos.x = inst->fsize.x - pin->pinPos.x;
+        pin->pinPos.y = inst->fsize.y - pin->pinPos.y;
+        pin->absPos = setFPOS(inst->fpmin, pin->pinPos);
     }
 }
 
@@ -138,5 +148,23 @@ void print_allInst(instDB_ptr data)
         printf("Inst %s @(%d, %d)\n", curInst->instName, 
                                       curInst->pmin.x, 
                                       curInst->pmin.y);
+    }
+}
+
+
+void place_inst(instance_ptr inst, struct POS pmin)
+{
+    inst->pmin = pmin;
+    inst->fpmin = posToFPOS(pmin);
+
+    inst->pmax = setPOS(pmin, inst->size);
+    inst->fpmax = setFPOS(inst->fpmin, inst->fsize);
+
+    inst->cent = setPOS(pmin, pdiv(inst->size, 2));
+    inst->fcent = setFPOS(inst->fpmin, fpdiv(inst->fsize, 2.0));
+    for (int i = 0; i < inst->numPins; i++)
+    {
+        pin_ptr pin = inst->instPinArray[i];
+        pin->absPos = setFPOS(inst->fpmin, pin->pinPos);
     }
 }
