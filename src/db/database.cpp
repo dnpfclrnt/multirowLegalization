@@ -354,3 +354,36 @@ void destroy_database(database_ptr data)
     // printf("PROC: Finished destroying data\n");
     free(data);
 }
+
+
+void initHPWL(database_ptr data)
+{
+    using namespace std;
+    for (int i = 0; i < data->net_data->numNet; i++)
+    {
+        net_ptr net = data->net_data->netArray[i];
+        net->pmax.x = net->pmax.y = -1;
+        net->pmin.x = net->pmin.y = 1 << 30;
+        for (int j = 0; j < net->numPins; j++)
+        {
+            pin_ptr pin = net->netPinArray[j];
+            net->pmax.x = max(net->pmax.x, pin->absPos.x);
+            net->pmax.y = max(net->pmax.y, pin->absPos.y);
+            net->pmin.x = min(net->pmin.x, pin->absPos.x);
+            net->pmin.y = min(net->pmin.y, pin->absPos.y);
+        }
+        net->HPWL = net->pmax.x - net->pmin.x + net->pmax.y - net->pmin.y;
+    }
+}
+
+
+unsigned int getHPWL(database_ptr data)
+{
+    unsigned int HPWL = 0;
+    for (int i = 0; i < data->net_data->numNet; i++)
+    {
+        net_ptr net = data->net_data->netArray[i];
+        HPWL += net->HPWL;
+    }
+    return HPWL;
+}

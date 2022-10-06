@@ -1,215 +1,172 @@
 #include "legalization.h"
 
 
-int* _sort_instByArea(database_ptr data, int* idxArray, int start, int end)
+bool checkInstOvlp(instance_ptr inst1, instance_ptr inst2)
 {
-    int len = end - start;
-    // printf("Recurse %d %d\n", start, end);
-    if (len < 2) return idxArray;
-    unsigned long long pivot = get_instWithIdx(data, idxArray[start])->area;
+    if (inst1->pmax.x > inst2->pmin.x) 
+    {
+        if (inst1->pmin.x < inst2->pmax.x) return true;
+    }
+    if (inst2->pmax.x > inst1->pmin.x)
+    {
+        if (inst2->pmin.x < inst1->pmax.x) return true;
+    }
+    if (inst1->pmax.y > inst2->pmin.y)
+    {
+        if (inst1->pmin.y < inst2->pmax.y) return true;
+    }
+    if (inst2->pmax.y > inst1->pmin.y)
+    {
+        if (inst2->pmin.y < inst2->pmax.y) return true;
+    }
 
-    int sweep = start;
-    int curEnd = end;
-    while(sweep != curEnd)
-    {
-        if (pivot < get_instWithIdx(data, idxArray[sweep + 1])->area)
-        {
-            int temp = idxArray[sweep + 1];
-            idxArray[sweep + 1] = idxArray[sweep];
-            idxArray[sweep] = temp;
-            sweep++;
-        }
-        else
-        {
-            int temp = idxArray[curEnd];
-            idxArray[curEnd] = idxArray[sweep + 1];
-            idxArray[sweep + 1] = temp;
-            curEnd--;
-        }
-    }
-    if (get_instWithIdx(data, idxArray[sweep])->area != pivot)
-    {
-        fprintf(stderr, "Lost Pivot!\n");
-        exit(EXIT_FAILURE);
-    }
-    idxArray = _sort_instByArea(data, idxArray, start, sweep - 1);
-    idxArray = _sort_instByArea(data, idxArray, sweep + 1, end);
-    return idxArray;
+    return false;
 }
 
 
-int* _sort_instByPmin(database_ptr data, int* idxArray, int start, int end, int mode)
+ovlpMap_ptr create_ovlpMap(database_ptr data, instance_ptr inst)
 {
-    // Mode == 0 sort x
-    // Mode == 1 sort y
-    int len = end - start;
-    // printf("Recurse %d %d\n", start, end);
-    if (len < 2) return idxArray;
-    int pivot;
-    if (mode == mode_x) pivot = get_instWithIdx(data, idxArray[start])->pmin.x;
-    else pivot = get_instWithIdx(data, idxArray[start])->pmin.y;
+    using namespace std;
+    struct POS gridSize = data->die_data->site;
+    ovlp_ptr overlap = NULL;
+    struct POS minGrid;
+    struct POS maxGrid;
+    struct POS sweepGrid;
+    minGrid.x = inst->pmin.x / gridSize.x;
+    minGrid.y = inst->pmin.y / gridSize.y;
+    maxGrid.x = inst->pmax.x / gridSize.x;
+    maxGrid.y = inst->pmax.y / gridSize.y;
+    sweepGrid.x = sweepGrid.y = 0;
+    int overlapLen = 0;
 
-    int sweep = start;
-    int curEnd = end;
-
-    int current;
-    while(sweep != curEnd)
+    for (int x = minGrid.x; x < maxGrid.x; x++)
     {
-        if (mode == mode_x)current = get_instWithIdx(data, idxArray[sweep + 1])->pmin.x;
-        else current = get_instWithIdx(data, idxArray[sweep + 1])->pmin.y;
-        // printf("%d %d, %d\n", data->inst_data->instArray[idxArray[sweep + 1]]->instIdx, data->inst_data->instArray[idxArray[sweep + 1]]->pmin.x, data->inst_data->instArray[idxArray[sweep + 1]]->pmin.y);
-        if (pivot > current)
+        for (int y = minGrid.y; y < maxGrid.y; y++)
         {
-            int temp = idxArray[sweep + 1];
-            idxArray[sweep + 1] = idxArray[sweep];
-            idxArray[sweep] = temp;
-            sweep++;
-        }
-        else
-        {
-            int temp = idxArray[curEnd];
-            idxArray[curEnd] = idxArray[sweep + 1];
-            idxArray[sweep + 1] = temp;
-            curEnd--;
+            if (data->die_data->placementMap[y][x] != NULL)
+            {
+                instance_ptr prevInst = data->die_data->placementMap[y][x];
+                int prevInstFlag = checkInstPrevOvlp(overlap, overlapLen, prevInst);
+                if (prevInstFlag == -1)
+                {
+                    // Case1 First time to declare overlap inst
+                    overlap = (ovlp_ptr)malloc(sizeof(struct OVLP));
+                    overlap[0].ovlpInst = prevInst;
+                    overlap[0].abs_ovlpGrid.pmax.x = overlap[0].abs_ovlpGrid.pmax.y = -1;
+                    overlap[0].abs_ovlpGrid.pmin.x = overlap[0].abs_ovlpGrid.pmin.y = 1<<30;
+                    overlap[0].abs_ovlpGrid.pmax.x = max(overlap[0].abs_ovlpGrid.pmax.x, x);
+                    overlap[0].abs_ovlpGrid.pmax.y = max(overlap[0].abs_ovlpGrid.pmax.y, y);
+                    overlap[0].abs_ovlpGrid.pmin.x = min(overlap[0].abs_ovlpGrid.pmin.x, x);
+                    overlap[0].abs_ovlpGrid.pmin.y = min(overlap[0].abs_ovlpGrid.pmin.y, y);
+                    overlapLen = 1;
+                }
+                else if (prevInstFlag == -2)
+                {
+                    // Case2 This instance was not searched previously
+                    overlapLen++;
+                    int ovIdx = overlapLen - 1;
+                    overlap = (ovlp_ptr)realloc(overlap, sizeof(struct OVLP) * overlapLen);
+                    overlap[ovIdx].ovlpInst = prevInst;
+                    overlap[ovIdx].abs_ovlpGrid.pmax.x = overlap[ovIdx].abs_ovlpGrid.pmax.y = -1;
+                    overlap[ovIdx].abs_ovlpGrid.pmin.x = overlap[ovIdx].abs_ovlpGrid.pmin.y = 1<<30;
+                    overlap[ovIdx].abs_ovlpGrid.pmax.x = max(overlap[ovIdx].abs_ovlpGrid.pmax.x, x);
+                    overlap[ovIdx].abs_ovlpGrid.pmax.y = max(overlap[ovIdx].abs_ovlpGrid.pmax.y, y);
+                    overlap[ovIdx].abs_ovlpGrid.pmin.x = min(overlap[ovIdx].abs_ovlpGrid.pmin.x, x);
+                    overlap[ovIdx].abs_ovlpGrid.pmin.y = min(overlap[ovIdx].abs_ovlpGrid.pmin.y, y);
+                }
+                else
+                {
+                    // Case3 Flag has prev index. 
+                    int ovIdx = prevInstFlag;
+                    overlap[ovIdx].abs_ovlpGrid.pmax.x = max(overlap[ovIdx].abs_ovlpGrid.pmax.x, x);
+                    overlap[ovIdx].abs_ovlpGrid.pmax.y = max(overlap[ovIdx].abs_ovlpGrid.pmax.y, y);
+                    overlap[ovIdx].abs_ovlpGrid.pmin.x = min(overlap[ovIdx].abs_ovlpGrid.pmin.x, x);
+                    overlap[ovIdx].abs_ovlpGrid.pmin.y = min(overlap[ovIdx].abs_ovlpGrid.pmin.y, y);
+                }
+            }
         }
     }
-    idxArray = _sort_instByPmin(data, idxArray, start, sweep - 1, mode);
-    idxArray = _sort_instByPmin(data, idxArray, sweep + 1, end, mode);
-    return idxArray;
+    ovlpMap_ptr map = (ovlpMap_ptr)malloc(sizeof(struct OVLPMAP));
+    map->ovlp_array = overlap;
+    map->numOvlp = overlapLen;
+    return map;
 }
 
 
-int* sort_instByArea(database_ptr data)
+void moveLeftPossible(database_ptr data, instance_ptr inst, int leftEnd)
 {
-    int* instIdxArray = (int*)malloc(sizeof(int) * data->inst_data->numInst);
-    for (int i = 0; i < data->inst_data->numInst; i++)
+    struct POS gridSize = data->die_data->site;
+    struct POS start;
+    struct POS end;
+    start.x = inst->pmin.x / gridSize.x;
+    start.y = inst->pmin.y / gridSize.y;
+    end.x = start.x;
+    end.y = inst->pmax.y / gridSize.y;
+    int steps = 0;
+    bool cont = true;
+    while(cont)
     {
-        instIdxArray[i] = i;
+        for (int i = start.y; i < end.y; i++)
+        {
+            if (data->die_data->placementMap[i][start.x - steps - 1] ||
+                start.x - steps > leftEnd) 
+            {
+                cont = false;
+                break;
+            }
+        }
+        steps++;
     }
-    instIdxArray = _sort_instByArea(data, instIdxArray, 0, data->inst_data->numInst);
-    // for (int i = 0; i < data->inst_data->numInst; i++)
-    // {
-    //     instance_ptr inst = get_instWithIdx(data, instIdxArray[i]);
-    //     printf("%s size = %llu\n", inst->instName, inst->area);
-    // }
-    return instIdxArray;
+    if (steps > 0)
+    {
+        struct POS dest = inst->pmin;
+        inst->leftInterval = steps;
+        dest.x -= steps;
+        move_placementMap(data, inst, inst->pmin, dest);
+        safe_move_inst(data, inst, dest);
+    }
 }
 
 
-sortDB_ptr sort_instByPmin(database_ptr data)
+void moveRightPossible(database_ptr data, instance_ptr inst, int rightEnd)
 {
-    sortDB_ptr sort_data = (sortDB_ptr)malloc(sizeof(struct SORTDB));
-    int* instIdxArray_X = (int*)malloc(sizeof(int) * data->inst_data->numInst);
-    int* instIdxArray_Y = (int*)malloc(sizeof(int) * data->inst_data->numInst);
-    for (int i = 0; i < data->inst_data->numInst; i++)
+    struct POS gridSize = data->die_data->site;
+    struct POS start;
+    struct POS end;
+    end.x = inst->pmax.x / gridSize.x;
+    end.y = inst->pmax.y / gridSize.y;
+    start.x = end.x;
+    start.y = inst->pmin.y / gridSize.y;
+    int steps = 0;
+    bool cont = true;
+    while(cont)
     {
-        instIdxArray_X[i] = i;
-        instIdxArray_Y[i] = i;
+        for (int i = start.y; i < end.y; i++)
+        {
+            if (data->die_data->placementMap[i][start.x + steps + 1] ||
+                start.x + steps < rightEnd) 
+            {
+                cont = false;
+                break;
+            }
+        }
+        steps++;
     }
-    instIdxArray_X = _sort_instByPmin(data, instIdxArray_X, 0, data->inst_data->numInst, mode_x);
-    instIdxArray_Y = _sort_instByPmin(data, instIdxArray_Y, 0, data->inst_data->numInst, mode_y);
-    // for (int i = 0; i < data->inst_data->numInst; i++)
-    // {
-    //     printf("%d, %d\n", data->inst_data->instArray[i]->pmin.x, data->inst_data->instArray[i]->pmin.y);
-    // }
-    sort_data->idxArray_x = instIdxArray_X;
-    sort_data->idxArray_y = instIdxArray_Y;
-    return sort_data;
+    if (steps > 0)
+    {
+        struct POS dest = inst->pmin;
+        inst->rightInterval = steps;
+        dest.x += steps;
+        move_placementMap(data, inst, inst->pmin, dest);
+        safe_move_inst(data, inst, dest);
+    }   
 }
 
-
-sortDB_ptr create_sizeTable(database_ptr data, int* idxTokenArray)
-{
-    sizeToken_ptr sizeArray = NULL;
-    cellArea curSize, prevSize;
-    curSize = prevSize = 0;
-    int curLen = 0;
-
-    // Separate the instances according to the size. 
-    // Group up same size instances in an array. 
-    for (int i = 0; i < data->inst_data->numInst; i++)
-    {
-        instance_ptr inst = get_instWithIdx(data, idxTokenArray[i]);
-        curSize = inst->area;
-        if (curSize != prevSize)
-        {
-            curLen++;
-            if (curLen == 1) sizeArray = (sizeToken_ptr)malloc(sizeof(struct SIZETOKEN));
-            else sizeArray = (sizeToken_ptr)realloc(sizeArray, sizeof(struct SIZETOKEN) * curLen);
-            sizeArray[curLen - 1].size = curSize;
-            sizeArray[curLen - 1].arrayLen = 1;
-        }
-        else
-        {
-            sizeArray[curLen - 1].arrayLen++;
-        }
-        int subLen = sizeArray[curLen - 1].arrayLen;
-        if (subLen == 1)sizeArray[curLen - 1].idx_array = (int*)malloc(sizeof(int));
-        else sizeArray[curLen - 1].idx_array = (int*)realloc(sizeArray[curLen - 1].idx_array, sizeof(int) * subLen);
-        sizeArray[curLen - 1].idx_array[sizeArray[curLen - 1].arrayLen - 1] = inst->instIdx;
-        prevSize = curSize;
-    }
-
-    // Copy to a new array to sort both x and y axis. 
-    sizeToken_ptr sizeArray_Y = (sizeToken_ptr)malloc(sizeof(struct SIZETOKEN) * curLen);
-    for (int i = 0; i < curLen; i++)
-    {
-        sizeArray_Y[i].arrayLen = sizeArray[i].arrayLen;
-        sizeArray_Y[i].idx_array = (int*)malloc(sizeof(int) * sizeArray[i].arrayLen);
-        for (int j = 0; j < sizeArray[i].arrayLen; j++)
-        {
-            int instIdx = sizeArray[i].idx_array[j];
-            sizeArray_Y[i].idx_array[j] = instIdx;
-        }
-    }
-
-    sizeDB_ptr size_data = (sizeDB_ptr)malloc(sizeof(struct SIZEDB));
-    size_data->sizeTableX = sizeArray;
-    size_data->sizeTableY = sizeArray_Y;
-    size_data->numSizes = curLen;
-
-    for (int i = 0; i < curLen; i++)
-    {
-        _sort_instByPmin(data, size_data->sizeTableX[i].idx_array, 0, size_data->sizeTableX[i].arrayLen, mode_x);
-        _sort_instByPmin(data, size_data->sizeTableY[i].idx_array, 0, size_data->sizeTableY[i].arrayLen, mode_y);
-    }
-    sortDB_ptr ret = (sortDB_ptr)malloc(sizeof(struct SORTDB));
-    ret->idxArray_x = (int*)calloc(sizeof(int), data->inst_data->numInst);
-    ret->idxArray_y = (int*)calloc(sizeof(int), data->inst_data->numInst);
-    int idx = 0;
-    for (int i = 0; i < size_data->numSizes; i++)
-    {
-        int subLen = size_data->sizeTableX[i].arrayLen;
-        for (int j = 0; j < subLen; j++)
-        {
-            ret->idxArray_x[idx] = size_data->sizeTableX[i].idx_array[j];
-            ret->idxArray_y[idx] = size_data->sizeTableY[i].idx_array[j];
-            idx++;
-        }
-    }
-    for (int i = 0; i < size_data->numSizes; i++)
-    {
-        free(size_data->sizeTableX[i].idx_array);
-        free(size_data->sizeTableY[i].idx_array);
-    }
-    free(size_data);
-
-    return ret;
-}
-
-
-int checkInstPrevOvlp(ovlp_ptr ovlp_array, int arrayLen, instance_ptr inst)
-{
-    if (ovlp_array == NULL) return -1;
-    for (int i = 0; i < arrayLen; i++)
-    {
-        if (inst == ovlp_array[i].ovlpInst) return i;
-    }
-    return -2;
-}
-
-
+#ifdef PROTOTYPE
+intArray_ptr legalize(database_ptr data, char* mode)
+#else
 void legalize(database_ptr data, char* mode)
+#endif
 {
     using namespace std;
     printf("PROC: Start Legalization\n");
@@ -221,13 +178,16 @@ void legalize(database_ptr data, char* mode)
     if (!strcmp(mode, "SIZE"))   
     {
         printf("PROC: Sort Size MODE\n");
-        int* sortedInst = sort_instByArea(data);
+        // int* sortedInst = sort_instByArea(data);
         sortXY = create_sizeTable(data, sortedInst);
     }
     else
     {
         printf("PROC: Sort Coordinate MODE\n");
-        sortXY = sort_instByPmin(data);
+        sortXY = create_sizeTable(data, sortedInst);
+        sortXY->idxArray_x = _sort_instByPmin(data, sortXY->idxArray_x, 0, data->inst_data->numInst, mode_x);
+        sortXY->idxArray_y = _sort_instByPmin(data, sortXY->idxArray_y, 0, data->inst_data->numInst, mode_y);
+        // sortXY = sort_instByPmin(data);
     }
     for (int i = 0; i < data->inst_data->numInst; i++)
     {
@@ -249,9 +209,17 @@ void legalize(database_ptr data, char* mode)
     gridSize.x = data->die_data->site.x;
     gridSize.y = data->die_data->site.y;
     int failCnt = 0;
+
+    bool* placed = (bool*)malloc(sizeof(bool) * data->inst_data->numInst);
+    int notPlaced = data->inst_data->numInst;
     for (int i = 0; i < data->inst_data->numInst; i++)
     {
-        instance_ptr inst = get_instWithIdx(data, sortedInst[i]);
+        placed[i] = false;
+    }
+
+    for (int i = 0; i < data->inst_data->numInst; i++)
+    {
+        instance_ptr inst = get_instWithIdx(data, sortXY->idxArray_x[i]);
         struct POS maxPos = subtractPOS(data->die_data->pmax, inst->size);
 
         // Get initial candidates
@@ -318,7 +286,8 @@ void legalize(database_ptr data, char* mode)
                 inst->pmin.x = min(maxPos.x, ((inst->pmin.x / gridSize.x) + 1) * gridSize.x);
                 inst->pmin.y = min(maxPos.y, ((inst->pmin.y / gridSize.y) + 1) * gridSize.y);
             }
-            place_inst(inst, inst->pmin);
+            safe_move_inst(data, inst, inst->pmin);
+            // place_inst(inst, inst->pmin);
             immPlaced = check_legality_local(data, inst);
             if (immPlaced == true) 
             {
@@ -328,7 +297,9 @@ void legalize(database_ptr data, char* mode)
         }
         if (immPlaced == true) 
         {
-            printf("Placed %d/%d Cells\n", i - failCnt, data->inst_data->numInst);
+            placed[i] = true;
+            notPlaced--;
+            // printf("Placed %d/%d Cells\n", i - failCnt, data->inst_data->numInst);
             continue;
         }
         else failCnt++;
@@ -353,127 +324,179 @@ void legalize(database_ptr data, char* mode)
             inst->pmin.x = min(maxPos.x, ((inst->pmin.x / gridSize.x) + 1) * gridSize.x);
             inst->pmin.y = min(maxPos.y, ((inst->pmin.y / gridSize.y) + 1) * gridSize.y);
         }
-        place_inst(inst, inst->pmin);
-        ovlp_ptr overlap = NULL;
-        struct POS minGrid;
-        struct POS maxGrid;
-        struct POS sweepGrid;
-        minGrid.x = inst->pmin.x / gridSize.x;
-        minGrid.y = inst->pmin.y / gridSize.y;
-        maxGrid.x = inst->pmax.x / gridSize.x;
-        maxGrid.y = inst->pmax.y / gridSize.y;
-        sweepGrid.x = sweepGrid.y = 0;
-        int overlapLen = 0;
-
-        for (int x = minGrid.x; x < maxGrid.x; x++)
+        safe_move_inst(data, inst, inst->pmin);
+        // place_inst(inst, inst->pmin);
+    }
+    printf("PROC: Placed %d/%d\n", data->inst_data->numInst - notPlaced, data->inst_data->numInst);
+    // Initial legalization finished.
+    int numPlace = data->inst_data->numInst;
+    int R_x = 30;
+    int R_y = 5;
+    int k = 1;
+    while(notPlaced > 0)
+    {
+        printf("\nNot placed %d\n", notPlaced);
+        int* notPlacedIdx_arr = (int*)malloc(sizeof(int) * notPlaced);
+        cellArea maxArea = 0;
+        int cnt = 0;
+        for (int i = 0; i < numPlace; i++)
         {
-            for (int y = minGrid.y; y < maxGrid.y; y++)
+            if (placed[i] == false)
             {
-                if (data->die_data->placementMap[y][x] != NULL)
+                maxArea = max(data->inst_data->instArray[i]->area, maxArea);
+                notPlacedIdx_arr[cnt++] = i;
+            }
+        }
+        #ifdef PROTOTYPE
+        free(placed);
+        intArray_ptr arr = (intArray_ptr)malloc(sizeof(struct INTARRAY));
+        arr->intArray = notPlacedIdx_arr;
+        arr->len = notPlaced;
+        return arr;
+        #endif
+        free(placed);
+        placed = (bool*)malloc(sizeof(bool) * notPlaced);
+        for (int i = 0; i < notPlaced; i++)
+        {
+            placed[i] = false;
+        }
+
+        cellArea total_case = 0;
+        for (int i = 0; i < notPlaced; i++)
+        {
+            instance_ptr inst = get_instWithIdx(data, notPlacedIdx_arr[i]);
+            struct BBOX window;
+            struct BBOX windowGrid;
+            window.pmax.x = min(inst->pmax.x + gridSize.x * R_x * k, data->die_data->pmax.x);
+            window.pmax.y = min(inst->pmax.y + gridSize.y * R_y * k,  data->die_data->pmax.y);
+            window.pmin.x = max(inst->pmin.x - gridSize.x * R_x * k, data->die_data->pmin.x);
+            window.pmin.y = max(inst->pmin.y - gridSize.x * R_y * k, data->die_data->pmin.y);
+            if (window.pmax.x == data->die_data->pmax.x &&
+                window.pmax.y == data->die_data->pmax.y &&
+                window.pmin.x == data->die_data->pmin.x &&
+                window.pmin.y == data->die_data->pmin.y)
+            {
+                free(notPlacedIdx_arr);
+                free(placed);
+                free(sortedInst);
+                fprintf(stderr, "Failed to place all inst\n");
+                exit(EXIT_FAILURE);
+            }
+            // printf("Window (%d, %d) (%d, %d)\n", window.pmin.x, window.pmin.y, window.pmax.x, window.pmax.y);
+            windowGrid.pmax.x = window.pmax.x / gridSize.x;
+            windowGrid.pmax.y = window.pmax.y / gridSize.y;
+            windowGrid.pmin.x = window.pmin.x / gridSize.x;
+            windowGrid.pmin.y = window.pmin.y / gridSize.y;
+            // int* windowInstIdx = (int*)malloc(sizeof(int));
+            // windowInstIdx[0] = 0;
+            int* windowInstIdx = NULL;
+            int numInst = 0;
+            // Window construction
+            for (int x = windowGrid.pmin.x; x < windowGrid.pmax.x; x++)
+            {
+                for (int y = windowGrid.pmin.y; y < windowGrid.pmax.y; y++)
                 {
-                    instance_ptr prevInst = data->die_data->placementMap[y][x];
-                    int prevInstFlag = checkInstPrevOvlp(overlap, overlapLen, prevInst);
-                    if (prevInstFlag == -1)
+                    if (data->die_data->placementMap[y][x] != NULL)
                     {
-                        // Case1 First time to declare overlap inst
-                        overlap = (ovlp_ptr)malloc(sizeof(struct OVLP));
-                        overlap[0].ovlpInst = prevInst;
-                        overlap[0].abs_ovlpGrid.pmax.x = overlap[0].abs_ovlpGrid.pmax.y = -1;
-                        overlap[0].abs_ovlpGrid.pmin.x = overlap[0].abs_ovlpGrid.pmin.y = 1<<30;
-                        overlap[0].abs_ovlpGrid.pmax.x = max(overlap[0].abs_ovlpGrid.pmax.x, x);
-                        overlap[0].abs_ovlpGrid.pmax.y = max(overlap[0].abs_ovlpGrid.pmax.y, y);
-                        overlap[0].abs_ovlpGrid.pmin.x = min(overlap[0].abs_ovlpGrid.pmin.x, x);
-                        overlap[0].abs_ovlpGrid.pmin.y = min(overlap[0].abs_ovlpGrid.pmin.y, y);
-                        overlapLen = 1;
-                    }
-                    else if (prevInstFlag == -2)
-                    {
-                        // Case2 This instance was not searched previously
-                        overlapLen++;
-                        int ovIdx = overlapLen - 1;
-                        overlap = (ovlp_ptr)realloc(overlap, sizeof(struct OVLP) * overlapLen);
-                        overlap[ovIdx].ovlpInst = prevInst;
-                        overlap[ovIdx].abs_ovlpGrid.pmax.x = overlap[ovIdx].abs_ovlpGrid.pmax.y = -1;
-                        overlap[ovIdx].abs_ovlpGrid.pmin.x = overlap[ovIdx].abs_ovlpGrid.pmin.y = 1<<30;
-                        overlap[ovIdx].abs_ovlpGrid.pmax.x = max(overlap[ovIdx].abs_ovlpGrid.pmax.x, x);
-                        overlap[ovIdx].abs_ovlpGrid.pmax.y = max(overlap[ovIdx].abs_ovlpGrid.pmax.y, y);
-                        overlap[ovIdx].abs_ovlpGrid.pmin.x = min(overlap[ovIdx].abs_ovlpGrid.pmin.x, x);
-                        overlap[ovIdx].abs_ovlpGrid.pmin.y = min(overlap[ovIdx].abs_ovlpGrid.pmin.y, y);
-                    }
-                    else
-                    {
-                        // Case3 Flag has prev index. 
-                        int ovIdx = prevInstFlag;
-                        overlap[ovIdx].abs_ovlpGrid.pmax.x = max(overlap[ovIdx].abs_ovlpGrid.pmax.x, x);
-                        overlap[ovIdx].abs_ovlpGrid.pmax.y = max(overlap[ovIdx].abs_ovlpGrid.pmax.y, y);
-                        overlap[ovIdx].abs_ovlpGrid.pmin.x = min(overlap[ovIdx].abs_ovlpGrid.pmin.x, x);
-                        overlap[ovIdx].abs_ovlpGrid.pmin.y = min(overlap[ovIdx].abs_ovlpGrid.pmin.y, y);
+                        bool isSkip = false;
+                        for (int check = 0; check < numInst; check++)
+                        {
+                            if (windowInstIdx[check] == data->die_data->placementMap[y][x]->instIdx) 
+                            {
+                                // printf("%d %d\n", windowInstIdx[i], data->die_data->placementMap[y][x]->instIdx);
+                                isSkip = true;
+                                break;
+                            }
+                        }
+                        if (isSkip) continue;
+                        if (data->die_data->placementMap[y][x]->pmax.x <= window.pmax.x &&
+                            data->die_data->placementMap[y][x]->pmax.y <= window.pmax.y &&
+                            data->die_data->placementMap[y][x]->pmin.x >= window.pmin.x &&
+                            data->die_data->placementMap[y][x]->pmin.y >= window.pmin.y)
+                        {
+                            if (numInst == 0) 
+                            {
+                                windowInstIdx = (int*)malloc(sizeof(int));
+                                windowInstIdx[0] = data->die_data->placementMap[y][x]->instIdx;
+                                numInst = 1;
+                            }
+                            else
+                            {
+                                numInst++;
+                                windowInstIdx = (int*)realloc(windowInstIdx, numInst * sizeof(int));
+                                windowInstIdx[numInst - 1] = data->die_data->placementMap[y][x]->instIdx;
+                            }
+                        }
                     }
                 }
             }
-        }
-        for (int i = 0; i < overlapLen; i++)
-        {
-            overlap[i].ovlpGrid.pmax = subtractPOS(overlap[i].abs_ovlpGrid.pmax, minGrid);
-            overlap[i].ovlpGrid.pmin = subtractPOS(overlap[i].abs_ovlpGrid.pmin, minGrid);
-            // if (overlap[i].ovlpGrid.pmin.x < 0)
-            // {
-            //     printf("\nInst %s, %s overlap (%d, %d) --> (%d, %d)\n", inst->instName, overlap[i].ovlpInst->instName, 
-            //                                                         overlap[i].ovlpGrid.pmin.x, overlap[i].ovlpGrid.pmin.y,
-            //                                                         overlap[i].ovlpGrid.pmax.x, overlap[i].ovlpGrid.pmax.y);
-            //     printf("Inst %s, %s overlap (%d, %d) --> (%d, %d)\n", inst->instName, overlap[i].ovlpInst->instName, 
-            //                                                         overlap[i].abs_ovlpGrid.pmin.x, overlap[i].abs_ovlpGrid.pmin.y,
-            //                                                         overlap[i].abs_ovlpGrid.pmax.x, overlap[i].abs_ovlpGrid.pmax.y);
-            //     printf("MinGrid = %d, %d\n", minGrid.x, minGrid.y);
-            //     // printf("Inst %s (%d, %d) (%d, %d)\n", inst->instName, inst->pmin.x, inst->pmin.y,
-            //     //                                     inst->pmax.x, inst->pmax.y);
-            //     // printf("Inst %s (%d, %d) (%d, %d)\n", overlap[i].ovlpInst->instName, 
-            //     //                                     overlap[i].ovlpInst->pmin.x, overlap[i].ovlpInst->pmin.y,
-            //     //                                     overlap[i].ovlpInst->pmax.x, overlap[i].ovlpInst->pmax.y);
-            //     printf("Inst %s (%d, %d) (%d, %d)\n", inst->instName, inst->pmin.x / gridSize.x, inst->pmin.y / gridSize.y,
-            //                                         inst->pmax.x / gridSize.x, inst->pmax.y / gridSize.y);
-            //     printf("Inst %s (%d, %d) (%d, %d)\n", overlap[i].ovlpInst->instName, 
-            //                                         overlap[i].ovlpInst->pmin.x / gridSize.x, overlap[i].ovlpInst->pmin.y / gridSize.y,
-            //                                         overlap[i].ovlpInst->pmax.x / gridSize.x, overlap[i].ovlpInst->pmax.y / gridSize.y);
-            // }
-            
-            struct POS ovlpArea = subtractPOS(overlap[i].ovlpGrid.pmax, overlap[i].ovlpGrid.pmin);
-            if (ovlpArea.x * gridSize.x > ovlpArea.y * gridSize.y)
+            // interval calculation
+            if (numInst > 0)
             {
-                // X overlap is larger. Move up/down
+                // printf("%d\n", numInst);
+                windowInstIdx = _sort_instByPmin(data, windowInstIdx, 0, numInst, mode_x);
+                struct POS* originalPos = (struct POS*)malloc(sizeof(struct POS) * numInst);
+                for (int idx = 0; idx < numInst; idx++)
+                {
+                    instance_ptr pushInst = get_instWithIdx(data, windowInstIdx[idx]);
+                    originalPos[idx] = pushInst->pmin;
+                }
+                for (int idx = 0; idx < numInst; idx++)
+                {
+                    instance_ptr pushInst = get_instWithIdx(data, windowInstIdx[idx]);
+                    moveLeftPossible(data, pushInst, windowGrid.pmin.x);
+                }
+                for (int idx = 0; idx < numInst; idx++)
+                {
+                    instance_ptr pushInst = get_instWithIdx(data, windowInstIdx[idx]);
+                    move_placementMap(data, pushInst, pushInst->pmin, originalPos[idx]);
+                    safe_move_inst(data, pushInst, originalPos[idx]);
+                }
+                int possible_cases = 1;
+                for (int idx = numInst -1; idx >= 0; idx--)
+                {
+                    instance_ptr pushInst = get_instWithIdx(data, windowInstIdx[idx]);
+                    moveRightPossible(data, pushInst, windowGrid.pmax.x);
+                    possible_cases *= (pushInst->left_pushable + pushInst->right_pushable + 1);
+                }
+                // printf("%d Possible cases\n", possible_cases);
+                total_case += possible_cases;
+                for (int idx = numInst -1; idx >= 0; idx--)
+                {
+                    instance_ptr pushInst = get_instWithIdx(data, windowInstIdx[idx]);
+                    move_placementMap(data, pushInst, pushInst->pmin, originalPos[idx]);
+                    safe_move_inst(data, pushInst, originalPos[idx]);
+                }
+                ovlpMap_ptr map = create_ovlpMap(data, inst);
+                for (int ovIdx = 0; ovIdx < map->numOvlp; ovIdx++)
+                {
+                    instance_ptr ovlpInst = map->ovlp_array[ovIdx].ovlpInst;
+                    bool isInWindow = false;
+                    for (int a = 0; a < numInst; a++)
+                    {
+                        if (windowInstIdx[a] == ovlpInst->instIdx) isInWindow = true;
+                    }
+                    if (isInWindow == false) break;
+                    if (ovlpInst->pmax.x - ovlpInst->leftInterval * gridSize.x > inst->pmin.x &&
+                        ovlpInst->pmin.x + ovlpInst->rightInterval * gridSize.x < inst->pmax.x)
+                    {
+                        break;
+                    }
+                    // else printf("great\n");
+                }
+                free(map->ovlp_array);
+                free(map);
             }
-            else
-            {
-                // Y overlap is larger. Move left/right
-            }
+            free(windowInstIdx);
         }
+        printf("Total cases = %llu\n", total_case);
 
-
-
-
-        // else printf("Proc: %d/%d ### Immediate place failed ###\n", ++failCnt, i);
-
-        // place_inst(inst, inst->pmin);
-        // bool isLegal = check_legality_local(data, inst);
-        // if (isLegal) fill_placementMap(data, inst);
-        // else
-        // {
-        //     instance_ptr* ovlpInstList = NULL;
-        //     int numOvlpInst = 0;
-        //     int startRow = inst->pmin.y / data->die_data->site.y;
-        //     int endRow   = inst->pmax.y / data->die_data->site.y;
-
-        //     int startCol = inst->pmin.x / data->die_data->site.x;
-        //     int endCol   = inst->pmax.x / data->die_data->site.x;
-        //     if (ovlpInstList) free(ovlpInstList);
-        // }
-        // place_inst(inst, inst->pmin);
-        if (overlap != NULL)
-        {
-            free(overlap);
-            overlap = NULL;
-        }
+        numPlace = notPlaced;
+        free(notPlacedIdx_arr);
+        if (notPlaced > 0) break;
+        k++;
     }
+    free(placed);
     free(sortedInst);
     struct timeval end;
     gettimeofday(&end, NULL);

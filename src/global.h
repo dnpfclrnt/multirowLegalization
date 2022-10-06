@@ -51,7 +51,21 @@ struct BBOX{
 };
 
 
+struct INTARRAY{
+    int* intArray;
+    int len;
+}; typedef INTARRAY* intArray_ptr;
+
+
 // Mode selection
 #define DRV_VISUAL /*true*/ false
 #define mode_x 0
 #define mode_y 1
+
+#define mode_left 0
+#define mode_right 1
+#define mode_up 2
+#define mode_down 3
+
+
+// #define PROTOTYPE

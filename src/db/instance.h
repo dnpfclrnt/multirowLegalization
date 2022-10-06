@@ -40,6 +40,15 @@ struct INSTANCE{
 
     // For legalization
     struct POS sortedIdx;
+
+    bool left_pushable;
+    bool right_pushable;
+    bool down_pushable;
+    bool up_pushable;
+
+    int leftInterval;
+    int rightInterval;
+
 }; typedef struct INSTANCE* instance_ptr;
 
 

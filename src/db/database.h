@@ -46,4 +46,8 @@ database_ptr database_init(char* filedir);
 void destroy_database(database_ptr data);
 
 
+void initHPWL(database_ptr data);
+unsigned int getHPWL(database_ptr data);
+
+
 #endif

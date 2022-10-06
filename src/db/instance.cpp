@@ -31,6 +31,13 @@ instance_ptr create_instance(instDB_ptr data, char* instName, char* techName,
     inst->rowIdxArray = NULL;
 
     inst->instIdx = -1;
+
+
+    inst->left_pushable = true;
+    inst->right_pushable = true;
+    inst->down_pushable = true;
+    inst->up_pushable = true;
+    
     int instHashIdx = hash_function(inst->instName);
     inst->next = data->hashTable[instHashIdx].start;
     data->hashTable[instHashIdx].start = inst;
