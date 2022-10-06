@@ -16,7 +16,9 @@ int main(int argc, char** argv)
     printf("=======================================\n");
 
     placmenet_map_init(data);
-    legalize(data);
+    std::string lg_mode = "SIZE";
+    // legalize(data, (char*)lg_mode.c_str());
+    legalize(data, "");
     check_legality_global(data);
 
     destroy_database(data);

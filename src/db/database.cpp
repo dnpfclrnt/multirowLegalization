@@ -48,7 +48,7 @@ void inst_init(instance_ptr inst)
     inst->size = curTech->size;
     inst->fsize = fsize;
 
-    inst->area = (unsigned long long)inst->size.x * (unsigned long long)inst->size.y;
+    inst->area = (cellArea)inst->size.x * (cellArea)inst->size.y;
     inst->farea = inst->fsize.x * inst->fsize.y;
 
     inst->numPins = curTech->numPins;
@@ -303,6 +303,7 @@ database_ptr database_init(char* filedir)
     {
         instance_ptr curInst = data->inst_data->instArray[i];
         curInst->rowHeight = data->die_data->rowHeight;
+        curInst->numRows = curInst->size.y / curInst->rowHeight;
         for (int j = 0; j < curInst->numPins; j++)
         {
             pin_ptr curPin = curInst->instPinArray[j];

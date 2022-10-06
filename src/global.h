@@ -9,10 +9,23 @@
 #include <cfloat>
 #include <sys/time.h>
 
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <tuple>
+// shchung
+#include <algorithm>
+#include <limits>
+
 
 // typedef float prec;
 typedef double prec;
 // typedef long double prec;
+
+
+typedef unsigned long long cellArea;
 
 #define numThreads 16
 #define default_hash_size 1024

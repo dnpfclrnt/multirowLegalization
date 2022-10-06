@@ -23,7 +23,7 @@ struct INSTANCE{
     struct POS size;
     struct FPOS fsize;
 
-    unsigned long long area;
+    cellArea area;
     prec farea;
 
     int numPins;
@@ -37,6 +37,9 @@ struct INSTANCE{
 
     int instIdx;
     struct INSTANCE* next;
+
+    // For legalization
+    struct POS sortedIdx;
 }; typedef struct INSTANCE* instance_ptr;
 
 

@@ -3,8 +3,6 @@
 
 
 #include "../db/database.h"
-
-
 // List of functions
 void placmenet_map_init(database_ptr data);
 void reset_placementMap(database_ptr data);

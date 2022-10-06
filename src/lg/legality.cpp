@@ -49,13 +49,30 @@ void lgInst_init(database_ptr data)
     {
         instance_ptr inst = data->inst_data->instArray[i];
         data->inst_data->initialPOS[i] = inst->pmin;
-        if (inst->pmax.x > dieWidth || inst->pmax.y > dieHeight)
+        struct POS pmin;
+        if (inst->pmax.x > dieWidth)
         {
-            place_inst(inst, subtractPOS(data->die_data->pmax, inst->size));
+            pmin.x = dieWidth - inst->size.x;
+            pmin.y = inst->pmin.y;
+            place_inst(inst, pmin);
         }
-        if (inst->pmin.x < data->die_data->pmin.x || inst->pmin.y < data->die_data->pmin.y)
+        if (inst->pmax.y > dieHeight)
         {
-            place_inst(inst, setPOS(data->die_data->pmin, inst->size));
+            pmin.x = inst->pmin.x;
+            pmin.y = dieHeight - inst->size.y;
+            place_inst(inst, pmin);
+        }
+        if (inst->pmin.x < data->die_data->pmin.x)
+        {
+            pmin.x = data->die_data->pmin.x;
+            pmin.y = inst->pmin.y;
+            place_inst(inst, pmin);
+        }
+        if (inst->pmin.y < data->die_data->pmin.y)
+        {
+            pmin.x = inst->pmin.x;
+            pmin.y = data->die_data->pmin.y;
+            place_inst(inst, pmin);
         }
     }
     printf("PROC: Finished LG INIT\n");
@@ -69,6 +86,14 @@ bool check_legality_local(database_ptr data, instance_ptr inst)
 
     int startCol = inst->pmin.x / data->die_data->site.x;
     int endCol   = inst->pmax.x / data->die_data->site.x;
+    if (endCol > data->die_data->pmax.x / data->die_data->site.x ||
+        endRow > data->die_data->pmax.y / data->die_data->site.y)
+    {
+        fprintf(stderr, "Instance %s (%d, %d) (%d/%d, %d/%d)Out of index\n", inst->instName, inst->pmin.x, inst->pmin.y,
+                                                                    endCol, data->die_data->pmax.x / data->die_data->site.x, 
+                                                                    endRow, data->die_data->pmax.y / data->die_data->site.y);
+        exit(EXIT_FAILURE);
+    }
     for (int y = startRow; y < endRow; y++)
     {
         for (int x = startCol; x < endCol; x++)
