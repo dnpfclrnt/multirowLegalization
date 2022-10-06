@@ -55,6 +55,20 @@ int main(int argc, char** argv)
     printf("HPWL %u --> %u\n", HPWL_first, HPWL);
     printf("=======================================\n");
 
+    if (argc == 3)
+    {
+        string a = "PLOT";
+        char* plot_keyword = (char*)a.c_str();
+        if (!strcmp(plot_keyword, argv[2]))
+        {
+            for (int i = 0; i < data->inst_data->numInst; i++)
+            {
+                printf("PLOT %d\n", disp[i]);
+            }
+        }
+    }
+
+
     destroy_database(data);
     return 0;
 }
